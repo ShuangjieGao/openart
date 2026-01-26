@@ -71,19 +71,18 @@ def pixel_to_ratio(
     return (x_ratio, y_ratio)
 
 
-def check_color_in_threshold(L, A, B, threshold):
+def check_threshold(L, A, B, threshold):
     return (
         (threshold[0] <= L <= threshold[1])
         and (threshold[2] <= A <= threshold[3])
         and (threshold[4] <= B <= threshold[5])
     )
 
-
 def process_grid_cell(img, roi, thresholds_dict):
     stats = img.get_statistics(roi=roi)
     l, a, b = stats.l_mode(), stats.a_mode(), stats.b_mode()
-    is_goal = check_color_in_threshold(l, a, b, thresholds_dict["goal"])
-    is_floor = check_color_in_threshold(l, a, b, thresholds_dict["floor"])
+    is_goal = check_threshold(l, a, b, thresholds_dict["goal"])
+    is_floor = check_threshold(l, a, b, thresholds_dict["floor"])
     if is_goal:
         return 2
     elif is_floor:
@@ -130,47 +129,6 @@ def find_largest_blob(blobs):
             largest = blob
 
     return largest
-
-def classify_color(L, A, B, thresholds_dict):
-    """
-    分类颜色类型
-
-    Args:
-        L, A, B: LAB颜色值
-        thresholds_dict: 颜色阈值字典
-
-    Returns:
-        int: 2=goal, 1=floor, 0=wall
-    """
-    if check_color_in_threshold(L, A, B, thresholds_dict["goal"]):
-        return 2
-    elif check_color_in_threshold(L, A, B, thresholds_dict["floor"]):
-        return 1
-    else:
-        return 0
-
-
-def build_map_grid(img, floor_blob, thresholds_dict):
-    map_grid = [[0] * 14 for _ in range(10)]
-    goal_coords_list = []
-    for col in range(14):
-        for row in range(10):
-            try:
-                x, y = bilinear_interpolate(corners, row, col)
-                lab_values = sample_grid_cell(img, x, y)
-                if not lab_values:
-                    continue
-                L, A, B = lab_values
-                cell_type = classify_color(L, A, B, thresholds_dict)
-                map_grid[row][col] = cell_type
-                if cell_type == 2:
-                    goal_coords_list.append([row, col])
-
-            except Exception as e:
-                print("Warning: Failed to sample cell at ({}, {})".format(row, col))
-                continue
-
-    return (map_grid, goal_coords_list)
 
 
 thresholds_dict = {
@@ -238,51 +196,44 @@ while True:
     )
     largest_floor_blob = find_largest_blob(floor_blobs)
     if largest_floor_blob and display_dict["floor"]:
-        img.draw_rectangle(largest_floor_blob.rect(), color=(255, 0, 0), thickness=1)
+        blob = largest_floor_blob
+        img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=1)
+        x, y, w, h = blob.rect()
+        step_x = w / 14.0
+        step_y = h / 10.0
+        base_x = x
+        base_y = y
+        map_grid = [[0] * 14 for _ in range(10)]
+        goal_coords_list = []
+        for col in range(14):
+            for row in range(10):
+                grid_x = int(base_x + col * step_x)
+                grid_y = int(base_y + row * step_y)
+                grid_w = int(step_x)
+                grid_h = int(step_y)
 
-    # 使用双线性插值构建地图网格
-    map_grid, goal_coords_list = build_map_grid(color_img, largest_floor_blob, thresholds_dict)
+                # 边界检查
+                if grid_x < 0:
+                    grid_x = 0
+                if grid_y < 0:
+                    grid_y = 0
+                if grid_x + grid_w > img.width():
+                    grid_w = img.width() - grid_x
+                if grid_y + grid_h > img.height():
+                    grid_h = img.height() - grid_y
+                if grid_w <= 0 or grid_h <= 0:
+                    continue
 
-    # if floor_blob:
-    #     x, y, w, h = floor_blob.rect()
-    #     step = w / 14.0
-    #     base_x = x
-    #     base_y = y
+                roi = (grid_x, grid_y, grid_w, grid_h)
+                img.draw_rectangle(roi, color=(0, 255, 0), thickness=1)
+                stats = img.get_statistics(roi=roi)
+                l, a, b = stats.l_mode(), stats.a_mode(), stats.b_mode()
 
-    #     # img.draw_rectangle(floor_blob.rect(), color=(0, 255, 0), thickness=1)
-    #     for col in range(14):
-    #         for row in range(10):
-    #             grid_x = int(base_x + col * w / 14.0)
-    #             grid_y = int(base_y + row * w / 14.0)
-    #             grid_w = int(w / 14.0)
-    #             grid_h = int(w / 14.0)
-
-    #             if grid_x < 0:
-    #                 grid_x = 0
-    #             if grid_y < 0:
-    #                 grid_y = 0
-    #             if grid_x + grid_w > img.width():
-    #                 grid_w = img.width() - grid_x
-    #             if grid_y + grid_h > img.height():
-    #                 grid_h = img.height() - grid_y
-
-    #             if grid_w <= 0 or grid_h <= 0:
-    #                 continue
-
-    #             roi = (grid_x, grid_y, grid_w, grid_h)
-
-    #             # img.draw_rectangle(roi, color=(255, 0, 0), thickness=1)
-
-    #             cell_type, is_goal, is_floor = process_grid_cell(
-    #                 img, roi, thresholds_dict
-    #             )
-
-    #             map_grid[row][col] = cell_type
-
-    #             if is_goal:
-    #                 goal_coords_list.append([row, col])
-    #             elif is_floor:
-    #                 floor_cells.append((row, col))
+                if check_threshold(l, a, b, thresholds_dict["floor"]):
+                    map_grid[row][col] = 1
+                if check_threshold(l, a, b, thresholds_dict["goal"]):
+                    goal_coords_list.append([row, col])
+                    map_grid[row][col] = 2
     # # 玩家检测
     # player_blob = detect_player(
     #     color_img, thresholds_dict["player"], pixels_threshold=15, merge=True, margin=5
