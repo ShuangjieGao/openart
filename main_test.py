@@ -114,30 +114,85 @@ def find_largest_blob(blobs):
     return largest
 
 
+thresholds_dict = {
+    "wall": (40, 100, -3, 127, -51, 127),
+    "player": (44, 100, -128, -23, -128, 78),
+    "player_front": (),
+    "player_back": (),
+    "box": (49, 100, -31, 1, 32, 127),
+    "goal": (50, 72, 80, 98, -70, -15),
+    "bomb": (50, 100, 75, 127, -55, 127),
+    # (0, 30, 0, 127, -128, 127) (40, 100, 55, 127, -50, 50)
+    "floor": (0, 50, 26, 127, -128, -66),
+    # (25, 50, 25, 127, -128, -50)
+    #   (0, 50, 25, 127, -128, -75)
+}
+
+display_dict = {
+    "wall": True,
+    "player": False,
+    "box": False,
+    "goal": True,
+    "bomb": False,
+    "floor": True,
+    "grid": False,
+}
+
 while True:
     img = sensor.snapshot()
     # try:
-    #     ld_img = image.Image("/sd/img6.bmp")
-    #     img.draw_image(ld_img, 0, 0, x_scale=1, y_scale=1)
+    #     ld_img = image.Image("/sd/firmware_ready.bmp")
+    #     img.draw_image(ld_img, 0, 0, x_scale=0.5, y_scale=0.5)
     # except Exception:
     #     pass
     color_img = img.copy()
+    binary_img = img.binary([thresholds_dict["floor"]])
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
+    print(current_lightness, brightness_output)
+
     blobs = color_img.find_blobs(
-        [(40, 100, -3, 127, -51, 127), (0, 50, 25, 127, -128, -75)],
+        [thresholds_dict["floor"]],
         pixels_threshold=15,
         merge=True,
-        margin=5,
+        margin=1,
     )
-    # img.binary([(40, 100, -3, 127, -51, 127), (0, 50, 25, 127, -128, -75)])
-    for blob in blobs:
+    largest_blob = find_largest_blob(blobs)
+    if largest_blob:
+        blob = largest_blob
+        img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=2)
+        min_corners = blob.min_corners()
+        for corner in min_corners:
+            img.draw_circle(corner[0], corner[1], 3, color=(0, 0, 255), thickness=2)
         x, y, w, h = blob.rect()
-        step = w / 16.0
+        step_x = w / 14.0
+        step_y = h / 10.0
         base_x = x
-        base_y = y+h-12*step
+        base_y = y
 
-        img.draw_rectangle((int(base_x),int(base_y),w,int(12*step)), color=(0, 255, 0), thickness=2)
+        for col in range(14):
+            for row in range(10):
+                grid_x = int(base_x + col * step_x)
+                grid_y = int(base_y + row * step_y)
+                grid_w = int(step_x)
+                grid_h = int(step_y)
+
+                # 边界检查
+                if grid_x < 0:
+                    grid_x = 0
+                if grid_y < 0:
+                    grid_y = 0
+                if grid_x + grid_w > img.width():
+                    grid_w = img.width() - grid_x
+                if grid_y + grid_h > img.height():
+                    grid_h = img.height() - grid_y
+
+                if grid_w <= 0 or grid_h <= 0:
+                    continue
+
+                roi = (grid_x, grid_y, grid_w, grid_h)
+
+                img.draw_rectangle(roi, color=(0, 255, 0), thickness=1)
 
     print(current_lightness, brightness_output)

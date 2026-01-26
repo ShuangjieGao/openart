@@ -131,107 +131,6 @@ def find_largest_blob(blobs):
 
     return largest
 
-
-def extract_floor_corners(blob):
-    """
-    从floor blob提取四个角点
-
-    Args:
-        blob: OpenMV blob对象
-
-    Returns:
-        tuple: ((x0, y0), (x1, y1), (x2, y2), (x3, y3))
-               分别为左上、右上、右下、左下角点
-               如果blob无效则返回None
-    """
-    if not blob:
-        return None
-
-    try:
-        x, y, w, h = blob.rect()
-        # 左上、右上、右下、左下
-        corners = (
-            (x, y),  # 左上
-            (x + w, y),  # 右上
-            (x + w, y + h),  # 右下
-            (x, y + h),  # 左下
-        )
-        return corners
-    except Exception:
-        return None
-
-
-def bilinear_interpolate(corners, row, col, grid_rows=10, grid_cols=14):
-    """
-    使用双线性插值计算网格单元的图像坐标
-
-    Args:
-        corners: 四个角点坐标 ((x0,y0), (x1,y1), (x2,y2), (x3,y3))
-        row: 网格行索引 (0-9)
-        col: 网格列索引 (0-13)
-        grid_rows: 网格总行数
-        grid_cols: 网格总列数
-
-    Returns:
-        tuple: (x, y) 图像像素坐标
-    """
-    # 归一化网格坐标到[0, 1]
-    u = col / (grid_cols - 1)
-    v = row / (grid_rows - 1)
-
-    # 提取四个角点
-    # P00 = 左上, P10 = 右上, P01 = 左下, P11 = 右下
-    x0, y0 = corners[0]  # 左上
-    x1, y1 = corners[1]  # 右上
-    x2, y2 = corners[2]  # 右下
-    x3, y3 = corners[3]  # 左下
-
-    # 双线性插值公式
-    # P(u, v) = (1-u)(1-v)P00 + u(1-v)P10 + (1-u)vP01 + uvP11
-    x = (1 - u) * (1 - v) * x0 + u * (1 - v) * x1 + (1 - u) * v * x3 + u * v * x2
-    y = (1 - u) * (1 - v) * y0 + u * (1 - v) * y1 + (1 - u) * v * y3 + u * v * y2
-
-    return (int(x), int(y))
-
-
-def sample_grid_cell(img, x, y, sample_size=3):
-    """
-    在指定像素位置采样颜色
-
-    Args:
-        img: OpenMV图像对象
-        x: 中心x坐标
-        y: 中心y坐标
-        sample_size: 采样区域大小（默认3x3像素）
-
-    Returns:
-        tuple: (L, A, B) LAB颜色值
-               如果采样失败返回None
-    """
-    # 计算ROI
-    roi_x = x - sample_size // 2
-    roi_y = y - sample_size // 2
-    roi_w = sample_size
-    roi_h = sample_size
-
-    # 边界裁剪
-    roi_x = max(0, roi_x)
-    roi_y = max(0, roi_y)
-    roi_w = min(roi_w, img.width() - roi_x)
-    roi_h = min(roi_h, img.height() - roi_y)
-
-    # 检查ROI有效性
-    if roi_w <= 0 or roi_h <= 0:
-        return None
-
-    try:
-        # 获取统计值
-        stats = img.get_statistics(roi=(roi_x, roi_y, roi_w, roi_h))
-        return (stats.l_mode(), stats.a_mode(), stats.b_mode())
-    except Exception:
-        return None
-
-
 def classify_color(L, A, B, thresholds_dict):
     """
     分类颜色类型
@@ -252,64 +151,18 @@ def classify_color(L, A, B, thresholds_dict):
 
 
 def build_map_grid(img, floor_blob, thresholds_dict):
-    """
-    构建完整的10x14地图网格
-
-    Args:
-        img: OpenMV图像对象
-        floor_blob: 检测到的floor blob
-        thresholds_dict: 颜色阈值字典
-
-    Returns:
-        tuple: (map_grid, goal_coords_list)
-               map_grid: 10x14二维数组
-               goal_coords_list: goal单元坐标列表
-    """
-    # 初始化10x14数组，所有值为0
     map_grid = [[0] * 14 for _ in range(10)]
-
-    # 设置边界为wall (值3)
-    for row in range(10):
-        for col in range(14):
-            if row == 0 or row == 9 or col == 0 or col == 13:
-                map_grid[row][col] = 3
-
     goal_coords_list = []
-
-    # 如果floor_blob为None，返回初始状态
-    if not floor_blob:
-        print("Warning: Invalid floor blob")
-        return (map_grid, goal_coords_list)
-
-    # 提取floor角点
-    corners = extract_floor_corners(floor_blob)
-    if not corners:
-        print("Warning: Invalid corner points")
-        return (map_grid, goal_coords_list)
-
-    # 遍历内部网格单元 (1 <= row <= 8, 1 <= col <= 12)
-    for row in range(1, 9):
-        for col in range(1, 13):
+    for col in range(14):
+        for row in range(10):
             try:
-                # 使用双线性插值计算(x, y)
                 x, y = bilinear_interpolate(corners, row, col)
-
-                # 采样颜色获取(L, A, B)
                 lab_values = sample_grid_cell(img, x, y)
-
-                # 如果采样失败，跳过该单元
                 if not lab_values:
                     continue
-
                 L, A, B = lab_values
-
-                # 分类颜色类型
                 cell_type = classify_color(L, A, B, thresholds_dict)
-
-                # 更新map_grid
                 map_grid[row][col] = cell_type
-
-                # 如果是goal类型，添加到goal_coords_list
                 if cell_type == 2:
                     goal_coords_list.append([row, col])
 
