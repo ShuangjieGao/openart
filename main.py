@@ -243,23 +243,6 @@ while True:
     # 使用双线性插值构建地图网格
     map_grid, goal_coords_list = build_map_grid(color_img, largest_floor_blob, thresholds_dict)
 
-    # 可选：绘制网格线用于调试
-    if largest_floor_blob and display_dict["grid"]:
-        corners = extract_floor_corners(largest_floor_blob)
-        if corners:
-            # 绘制网格线
-            for row in range(10):
-                for col in range(14):
-                    x, y = bilinear_interpolate(corners, row, col)
-                    img.draw_circle(x, y, 1, color=(0, 255, 0))
-
-            # 绘制goal位置
-            for goal_row, goal_col in goal_coords_list:
-                x, y = bilinear_interpolate(corners, goal_row, goal_col)
-                img.draw_cross(x, y, color=(255, 255, 0), size=3, thickness=1)
-
-    floor_cells = []
-
     # if floor_blob:
     #     x, y, w, h = floor_blob.rect()
     #     step = w / 14.0
