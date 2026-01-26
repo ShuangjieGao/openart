@@ -181,15 +181,16 @@ while True:
     #     img.draw_image(ld_img, 0, 0, x_scale=0.5, y_scale=0.5)
     # except Exception:
     #     pass
-    color_img = img.copy()
-    # binary_img = img.binary(
-    #     [
-    #         thresholds_dict["floor"],
-    #         thresholds_dict["bomb"],
-    #         thresholds_dict["player"],
-    #         thresholds_dict["box"],
-    #     ]
-    # )
+    color_img = img.copy()  # 保留原始图像
+    binary_img = img.binary(
+        [
+            thresholds_dict["floor"],
+            thresholds_dict["goal"],
+            thresholds_dict["bomb"],
+            thresholds_dict["player"],
+            thresholds_dict["box"],
+        ]
+    )
 
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
@@ -223,20 +224,23 @@ while True:
         base_y = y
 
         # 创建二值化图像用于快速判断
-        floor_binary = color_img.binary([thresholds_dict["floor"]])
-        goal_binary = color_img.binary([thresholds_dict["goal"]])
-        bomb_binary = color_img.binary([thresholds_dict["bomb"]])
-        player_binary = color_img.binary([thresholds_dict["player"]])
-        box_binary = color_img.binary([thresholds_dict["box"]])
-
+        binary_img = color_img.copy().binary(
+            [
+                thresholds_dict["floor"],
+                thresholds_dict["goal"],
+                thresholds_dict["bomb"],
+                thresholds_dict["player"],
+                thresholds_dict["box"],
+            ]
+        )
         map_grid = [[0] * 14 for _ in range(10)]
         goal_coords_list = []
         for col in range(14):
             for row in range(10):
-                grid_x = int(base_x + col * step_x + step_x * 0.2)
-                grid_y = int(base_y + row * step_y + step_y * 0.2)
-                grid_w = int(step_x - step_x * 0.4)
-                grid_h = int(step_y - step_y * 0.4)
+                grid_x = int(base_x + col * step_x + step_x * 0.3)
+                grid_y = int(base_y + row * step_y + step_y * 0.3)
+                grid_w = int(step_x - step_x * 0.6)
+                grid_h = int(step_y - step_y * 0.6)
 
                 # 边界检查
                 if grid_x < 0:
@@ -256,6 +260,10 @@ while True:
                 goal_stats = goal_binary.get_statistics(roi=roi)
                 floor_stats = floor_binary.get_statistics(roi=roi)
                 bomb_stats = bomb_binary.get_statistics(roi=roi)
+
+                # 在二值化图像中统计白色像素比例
+                goal_stats = goal_binary.get_statistics(roi=roi)
+                floor_stats = floor_binary.get_statistics(roi=roi)
                 player_stats = player_binary.get_statistics(roi=roi)
                 box_stats = box_binary.get_statistics(roi=roi)
 

@@ -1,7 +1,7 @@
 """
 Input/output streams.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/io.html
+MicroPython module: https://docs.micropython.org/en/preview/library/io.html
 
 CPython module: :mod:`python:io` https://docs.python.org/3/library/io.html .
 
@@ -73,38 +73,40 @@ classes corresponding to the hierarchy above, and it's not possible
 to implement, or subclass, a stream class in pure Python.
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/io.rst
 from __future__ import annotations
 from typing import IO, Any, Optional
 from _typeshed import Incomplete
 from stdlib.io import *  # type: ignore
+
 class StringIO(IO):
-    def __init__(self, string: Optional[Any]=None) -> None:
-        ...
+    def __init__(self, string: Optional[Any] = None) -> None: ...
+
 class BytesIO(IO):
     """
-        In-memory file-like objects for input/output. `StringIO` is used for
-        text-mode I/O (similar to a normal file opened with "t" modifier).
-        `BytesIO` is used for binary-mode I/O (similar to a normal file
-        opened with "b" modifier). Initial contents of file-like objects
-        can be specified with *string* parameter (should be normal string
-        for `StringIO` or bytes object for `BytesIO`). All the usual file
-        methods like ``read()``, ``write()``, ``seek()``, ``flush()``,
-        ``close()`` are available on these objects, and additionally, a
-        following method:
+    In-memory file-like objects for input/output. `StringIO` is used for
+    text-mode I/O (similar to a normal file opened with "t" modifier).
+    `BytesIO` is used for binary-mode I/O (similar to a normal file
+    opened with "b" modifier). Initial contents of file-like objects
+    can be specified with *string* parameter (should be normal string
+    for `StringIO` or bytes object for `BytesIO`). All the usual file
+    methods like ``read()``, ``write()``, ``seek()``, ``flush()``,
+    ``close()`` are available on these objects, and additionally, a
+    following method:
     """
-    def __init__(self, string: Optional[Any]=None) -> None:
-        ...
+
+    def __init__(self, string: Optional[Any] = None) -> None: ...
     def getvalue(self) -> Incomplete:
         """
-                Get the current contents of the underlying buffer which holds data.
+        Get the current contents of the underlying buffer which holds data.
         """
         ...
-def open(name, mode='r', **kwargs) -> Incomplete:
+
+def open(name, mode="r", **kwargs) -> Incomplete:
     """
-        Open a file. Builtin ``open()`` function is aliased to this function.
-        All ports (which provide access to file system) are required to support
-        *mode* parameter, but support for other arguments vary by port.
+    Open a file. Builtin ``open()`` function is aliased to this function.
+    All ports (which provide access to file system) are required to support
+    *mode* parameter, but support for other arguments vary by port.
     """
     ...

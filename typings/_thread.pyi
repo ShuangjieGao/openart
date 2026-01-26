@@ -1,7 +1,7 @@
 """
 Multithreading support.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/_thread.html
+MicroPython module: https://docs.micropython.org/en/preview/library/_thread.html
 
 CPython module: :mod:`python:_thread` https://docs.python.org/3/library/_thread.html .
 
@@ -11,7 +11,7 @@ This module is highly experimental and its API is not yet fully settled
 and not yet described in this documentation.
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/_thread.rst
 from __future__ import annotations
 from _typeshed import Incomplete

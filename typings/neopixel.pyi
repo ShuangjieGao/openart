@@ -1,7 +1,7 @@
 """
 Control of WS2812 / NeoPixel LEDs.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/neopixel.html
+MicroPython module: https://docs.micropython.org/en/preview/library/neopixel.html
 
 This module provides a driver for WS2818 / NeoPixel LEDs.
 
@@ -11,45 +11,50 @@ This module provides a driver for WS2818 / NeoPixel LEDs.
    directly from :term:`micropython-lib` and copy it to the filesystem.
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/neopixel.rst
 from __future__ import annotations
 from typing import Tuple
 from _typeshed import Incomplete
-class NeoPixel():
+
+class NeoPixel:
     """
-        Construct an NeoPixel object.  The parameters are:
-    
-            - *pin* is a machine.Pin instance.
-            - *n* is the number of LEDs in the strip.
-            - *bpp* is 3 for RGB LEDs, and 4 for RGBW LEDs.
-            - *timing* is 0 for 400KHz, and 1 for 800kHz LEDs (most are 800kHz).
+    Construct an NeoPixel object.  The parameters are:
+
+        - *pin* is a machine.Pin instance.
+        - *n* is the number of LEDs in the strip.
+        - *bpp* is 3 for RGB LEDs, and 4 for RGBW LEDs.
+        - *timing* is 0 for 400KHz, and 1 for 800kHz LEDs (most are 800kHz).
     """
-    def __init__(self, pin, n, *, bpp=3, timing=1) -> None:
-        ...
+
+    def __init__(self, pin, n, *, bpp=3, timing=1) -> None: ...
     def fill(self, pixel) -> None:
         """
-            Sets the value of all pixels to the specified *pixel* value (i.e. an
-            RGB/RGBW tuple).
+        Sets the value of all pixels to the specified *pixel* value (i.e. an
+        RGB/RGBW tuple).
         """
         ...
+
     def __len__(self) -> int:
         """
-            Returns the number of LEDs in the strip.
+        Returns the number of LEDs in the strip.
         """
         ...
+
     def __setitem__(self, index, val) -> None:
         """
-            Set the pixel at *index* to the value, which is an RGB/RGBW tuple.
+        Set the pixel at *index* to the value, which is an RGB/RGBW tuple.
         """
         ...
+
     def __getitem__(self, index) -> Tuple:
         """
-            Returns the pixel at *index* as an RGB/RGBW tuple.
+        Returns the pixel at *index* as an RGB/RGBW tuple.
         """
         ...
+
     def write(self) -> None:
         """
-            Writes the current pixel data to the strip.
+        Writes the current pixel data to the strip.
         """
         ...

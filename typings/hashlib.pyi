@@ -1,7 +1,7 @@
 """
 Hashing algorithms.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/hashlib.html
+MicroPython module: https://docs.micropython.org/en/preview/library/hashlib.html
 
 CPython module: :mod:`python:hashlib` https://docs.python.org/3/library/hashlib.html .
 
@@ -24,45 +24,52 @@ be implemented:
   will offer this.
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/hashlib.rst
 from __future__ import annotations
 from typing import Any, Optional
 from _typeshed import Incomplete
-class sha256():
+
+class sha256:
     """
-        Create an SHA256 hasher object and optionally feed ``data`` into it.
+    Create an SHA256 hasher object and optionally feed ``data`` into it.
     """
-    def __init__(self, data: Optional[Any]=None) -> None:
-        ...
-class sha1():
+
+    def __init__(self, data: Optional[Any] = None) -> None: ...
+
+class sha1:
     """
-        Create an SHA1 hasher object and optionally feed ``data`` into it.
+    Create an SHA1 hasher object and optionally feed ``data`` into it.
     """
-    def __init__(self, data: Optional[Any]=None) -> None:
-        ...
-class md5():
+
+    def __init__(self, data: Optional[Any] = None) -> None: ...
+
+class md5:
     """
-        Create an MD5 hasher object and optionally feed ``data`` into it.
+    Create an MD5 hasher object and optionally feed ``data`` into it.
     """
-    def __init__(self, data: Optional[Any]=None) -> None:
-        ...
-class hash():
+
+    def __init__(self, data: Optional[Any] = None) -> None: ...
+
+class hash:
     """ """
+
     def update(self, data) -> Incomplete:
         """
-           Feed more binary data into hash.
+        Feed more binary data into hash.
         """
         ...
+
     def digest(self) -> bytes:
         """
-           Return hash for all data passed through hash, as a bytes object. After this
-           method is called, more data cannot be fed into the hash any longer.
+        Return hash for all data passed through hash, as a bytes object. After this
+        method is called, more data cannot be fed into the hash any longer.
         """
         ...
+
     def hexdigest(self) -> Incomplete:
         """
-           This method is NOT implemented. Use ``binascii.hexlify(hash.digest())``
-           to achieve a similar effect.
+        This method is NOT implemented. Use ``binascii.hexlify(hash.digest())``
+        to achieve a similar effect.
         """
         ...

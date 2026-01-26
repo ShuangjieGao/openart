@@ -1,16 +1,17 @@
 """
 System specific functions.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/sys.html
+MicroPython module: https://docs.micropython.org/en/preview/library/sys.html
 
 CPython module: :mod:`python:sys` https://docs.python.org/3/library/sys.html .
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/sys.rst
 from __future__ import annotations
 from typing import Dict, List, Tuple
 from _typeshed import Incomplete
+
 argv: List
 """A mutable list of arguments the current program was started with."""
 byteorder: Incomplete
@@ -21,16 +22,13 @@ Object with information about the current Python implementation. For
 MicroPython, it has following attributes:
 
 * *name* - string "micropython"
-* *version* - tuple (major, minor, micro, releaselevel), e.g. (1, 22, 0, '')
+* *version* - tuple (major, minor, micro), e.g. (1, 7, 0)
 * *_machine* - string describing the underlying machine
 * *_mpy* - supported mpy file-format version (optional attribute)
 
 This object is the recommended way to distinguish MicroPython from other
 Python implementations (note that it still may not exist in the very
 minimal ports).
-
-Starting with version 1.22.0-preview, the fourth node *releaselevel* in
-*implementation.version* is either an empty string or ``"preview"``.
 
 Difference to CPython
 
@@ -116,48 +114,52 @@ Difference to CPython
 Only the first three version numbers (major, minor, micro) are supported and
 they can be referenced only by index, not by name.
 """
-def exit(retval=0, ) -> Incomplete:
+
+def exit(retval=0, /) -> Incomplete:
     """
-       Terminate current program with a given exit code. Underlyingly, this
-       function raise as `SystemExit` exception. If an argument is given, its
-       value given as an argument to `SystemExit`.
+    Terminate current program with a given exit code. Underlyingly, this
+    function raise as `SystemExit` exception. If an argument is given, its
+    value given as an argument to `SystemExit`.
     """
     ...
+
 def atexit(func) -> Incomplete:
     """
-       Register *func* to be called upon termination.  *func* must be a callable
-       that takes no arguments, or ``None`` to disable the call.  The ``atexit``
-       function will return the previous value set by this function, which is
-       initially ``None``.
-    
-       Difference to CPython
-    
-          This function is a MicroPython extension intended to provide similar
-          functionality to the :mod:`atexit` module in CPython.
+    Register *func* to be called upon termination.  *func* must be a callable
+    that takes no arguments, or ``None`` to disable the call.  The ``atexit``
+    function will return the previous value set by this function, which is
+    initially ``None``.
+
+    Difference to CPython
+
+       This function is a MicroPython extension intended to provide similar
+       functionality to the :mod:`atexit` module in CPython.
     """
     ...
-def print_exception(exc, file=stdout, ) -> None:
+
+def print_exception(exc, file=stdout, /) -> None:
     """
-       Print exception with a traceback to a file-like object *file* (or
-       `sys.stdout` by default).
-    
-       Difference to CPython
-    
-          This is simplified version of a function which appears in the
-          ``traceback`` module in CPython. Unlike ``traceback.print_exception()``,
-          this function takes just exception value instead of exception type,
-          exception value, and traceback object; *file* argument should be
-          positional; further arguments are not supported. CPython-compatible
-          ``traceback`` module can be found in `micropython-lib`.
+    Print exception with a traceback to a file-like object *file* (or
+    `sys.stdout` by default).
+
+    Difference to CPython
+
+       This is simplified version of a function which appears in the
+       ``traceback`` module in CPython. Unlike ``traceback.print_exception()``,
+       this function takes just exception value instead of exception type,
+       exception value, and traceback object; *file* argument should be
+       positional; further arguments are not supported. CPython-compatible
+       ``traceback`` module can be found in `micropython-lib`.
     """
     ...
+
 def settrace(tracefunc) -> None:
     """
-       Enable tracing of bytecode execution.  For details see the `CPython
-       documentation `<https://docs.python.org/3/library/sys.html#sys.settrace>.
-    
-       This function requires a custom MicroPython build as it is typically not
-       present in pre-built firmware (due to it affecting performance).  The relevant
-       configuration option is *MICROPY_PY_SYS_SETTRACE*.
+    Enable tracing of bytecode execution.  For details see the `CPython
+    documentation `<https://docs.python.org/3/library/sys.html#sys.settrace>.
+
+    This function requires a custom MicroPython build as it is typically not
+    present in pre-built firmware (due to it affecting performance).  The relevant
+    configuration option is *MICROPY_PY_SYS_SETTRACE*.
     """
     ...

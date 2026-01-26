@@ -1,7 +1,7 @@
 """
 Access binary data in a structured way.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/uctypes.html
+MicroPython module: https://docs.micropython.org/en/preview/library/uctypes.html
 
 This module implements "foreign data interface" for MicroPython. The idea
 behind it is similar to CPython's ``ctypes`` modules, but the actual API is
@@ -11,10 +11,11 @@ C language allows, and then access it using familiar dot-syntax to reference
 sub-fields.
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/uctypes.rst
 from __future__ import annotations
 from _typeshed import Incomplete
+
 LITTLE_ENDIAN: bytes
 """\
 Layout type for a little-endian packed structure. (Packed means that every
@@ -89,40 +90,45 @@ Type constants for pointers and arrays. Note that there is no explicit
 constant for structures, it's implicit: an aggregate type without ``PTR``
 or ``ARRAY`` flags is a structure.
 """
-class struct():
+
+class struct:
     """
-       Instantiate a "foreign data structure" object based on structure address in
-       memory, descriptor (encoded as a dictionary), and layout type (see below).
+    Instantiate a "foreign data structure" object based on structure address in
+    memory, descriptor (encoded as a dictionary), and layout type (see below).
     """
-    def __init__(self, addr, descriptor, layout_type=NATIVE, ) -> None:
-        ...
-def sizeof(struct, layout_type=NATIVE, ) -> int:
+
+    def __init__(self, addr, descriptor, layout_type=NATIVE, /) -> None: ...
+
+def sizeof(struct, layout_type=NATIVE, /) -> int:
     """
-       Return size of data structure in bytes. The *struct* argument can be
-       either a structure class or a specific instantiated structure object
-       (or its aggregate field).
+    Return size of data structure in bytes. The *struct* argument can be
+    either a structure class or a specific instantiated structure object
+    (or its aggregate field).
     """
     ...
+
 def addressof(obj) -> int:
     """
-       Return address of an object. Argument should be bytes, bytearray or
-       other object supporting buffer protocol (and address of this buffer
-       is what actually returned).
+    Return address of an object. Argument should be bytes, bytearray or
+    other object supporting buffer protocol (and address of this buffer
+    is what actually returned).
     """
     ...
+
 def bytes_at(addr, size) -> bytes:
     """
-       Capture memory at the given address and size as bytes object. As bytes
-       object is immutable, memory is actually duplicated and copied into
-       bytes object, so if memory contents change later, created object
-       retains original value.
+    Capture memory at the given address and size as bytes object. As bytes
+    object is immutable, memory is actually duplicated and copied into
+    bytes object, so if memory contents change later, created object
+    retains original value.
     """
     ...
+
 def bytearray_at(addr, size) -> bytearray:
     """
-       Capture memory at the given address and size as bytearray object.
-       Unlike bytes_at() function above, memory is captured by reference,
-       so it can be both written too, and you will access current value
-       at the given memory address.
+    Capture memory at the given address and size as bytearray object.
+    Unlike bytes_at() function above, memory is captured by reference,
+    so it can be both written too, and you will access current value
+    at the given memory address.
     """
     ...

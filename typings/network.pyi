@@ -1,7 +1,7 @@
 """
 Network configuration.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/network.html
+MicroPython module: https://docs.micropython.org/en/preview/library/network.html
 
 This module provides network drivers and routing configuration. To use this
 module, a MicroPython variant/build with network capabilities must be installed.
@@ -34,7 +34,7 @@ For example::
     s.close()
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/network.rst
 # + module: network.WINC.rst
 # + module: network.WLAN.rst
@@ -247,14 +247,14 @@ class WINC():
         ...
     def connected_sta(self) -> Incomplete:
         """
-              This method returns a list containing the connected client's IP address.
+              This method returns a list containing the connected client's IP adress.
         """
         ...
     def wait_for_sta(self, timeout) -> Incomplete:
         """
               This method blocks and waits for a client to connect. If timeout is 0
               this will block forever. This method returns a list containing the
-              connected client's IP address.
+              connected client's IP adress.
         """
         ...
     def ifconfig(self, ip_addr, subnet_addr, gateway_addr, dns_addr: Optional[Any]=None) -> Tuple:

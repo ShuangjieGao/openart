@@ -5,14 +5,14 @@
         "port": "-",
         "platform": "-",
         "machine": "micropython",
-        "firmware": "micropython-vab847696a",
+        "firmware": "micropython-preview",
         "nodename": "micropython",
-        "version": "vab847696a",
-        "release": "ab847696a",
+        "version": "preview",
+        "release": "v1.22-omv-r22",
         "sysname": "micropython"
     },
     "stubber": {
-        "version": "1.23.3",
+        "version": "1.20.1",
         "stubtype": "documentation"
     },
     "modules": [
@@ -29,6 +29,10 @@
             "module": "asyncio"
         },
         {
+            "file": "audio.pyi",
+            "module": "audio"
+        },
+        {
             "file": "binascii.pyi",
             "module": "binascii"
         },
@@ -41,6 +45,10 @@
             "module": "btree"
         },
         {
+            "file": "buzzer.pyi",
+            "module": "buzzer"
+        },
+        {
             "file": "cmath.pyi",
             "module": "cmath"
         },
@@ -49,12 +57,20 @@
             "module": "collections"
         },
         {
+            "file": "cpufreq.pyi",
+            "module": "cpufreq"
+        },
+        {
             "file": "cryptolib.pyi",
             "module": "cryptolib"
         },
         {
             "file": "deflate.pyi",
             "module": "deflate"
+        },
+        {
+            "file": "display.pyi",
+            "module": "display"
         },
         {
             "file": "errno.pyi",
@@ -73,12 +89,28 @@
             "module": "espnow"
         },
         {
+            "file": "fir.pyi",
+            "module": "fir"
+        },
+        {
             "file": "framebuf.pyi",
             "module": "framebuf"
         },
         {
+            "file": "ft5x06.pyi",
+            "module": "ft5x06"
+        },
+        {
             "file": "gc.pyi",
             "module": "gc"
+        },
+        {
+            "file": "gif.pyi",
+            "module": "gif"
+        },
+        {
+            "file": "gt911.pyi",
+            "module": "gt911"
         },
         {
             "file": "gzip.pyi",
@@ -91,6 +123,14 @@
         {
             "file": "heapq.pyi",
             "module": "heapq"
+        },
+        {
+            "file": "image.pyi",
+            "module": "image"
+        },
+        {
+            "file": "imu.pyi",
+            "module": "imu"
         },
         {
             "file": "io.pyi",
@@ -113,8 +153,16 @@
             "module": "math"
         },
         {
+            "file": "micro_speech.pyi",
+            "module": "micro_speech"
+        },
+        {
             "file": "micropython.pyi",
             "module": "micropython"
+        },
+        {
+            "file": "mjpeg.pyi",
+            "module": "mjpeg"
         },
         {
             "file": "mutex.pyi",
@@ -129,8 +177,8 @@
             "module": "network"
         },
         {
-            "file": "openamp.pyi",
-            "module": "openamp"
+            "file": "omv.pyi",
+            "module": "omv"
         },
         {
             "file": "os.pyi",
@@ -153,8 +201,20 @@
             "module": "rp2"
         },
         {
+            "file": "rpc.pyi",
+            "module": "rpc"
+        },
+        {
+            "file": "rtsp.pyi",
+            "module": "rtsp"
+        },
+        {
             "file": "select.pyi",
             "module": "select"
+        },
+        {
+            "file": "sensor.pyi",
+            "module": "sensor"
         },
         {
             "file": "socket.pyi",
@@ -177,8 +237,20 @@
             "module": "sys"
         },
         {
+            "file": "tf.pyi",
+            "module": "tf"
+        },
+        {
+            "file": "tfp410.pyi",
+            "module": "tfp410"
+        },
+        {
             "file": "time.pyi",
             "module": "time"
+        },
+        {
+            "file": "tv.pyi",
+            "module": "tv"
         },
         {
             "file": "uarray.pyi",
@@ -235,10 +307,6 @@
         {
             "file": "uzlib.pyi",
             "module": "uzlib"
-        },
-        {
-            "file": "vfs.pyi",
-            "module": "vfs"
         },
         {
             "file": "wipy.pyi",

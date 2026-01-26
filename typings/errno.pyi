@@ -1,7 +1,7 @@
 """
 System error codes.
 
-MicroPython module: https://docs.micropython.org/en/vab847696a/library/errno.html
+MicroPython module: https://docs.micropython.org/en/preview/library/errno.html
 
 CPython module: :mod:`python:errno` https://docs.python.org/3/library/errno.html .
 
@@ -9,11 +9,12 @@ This module provides access to symbolic error codes for `OSError` exception.
 A particular inventory of codes depends on :term:`MicroPython port`.
 """
 
-# source version: vab847696a
+# source version: preview
 # origin module:: repos/micropython/docs/library/errno.rst
 from __future__ import annotations
 from typing import Dict
 from _typeshed import Incomplete
+
 EEXIST: Incomplete
 """\
 Error codes, based on ANSI C/POSIX standard. All error codes start with
