@@ -78,6 +78,7 @@ def check_threshold(L, A, B, threshold):
         and (threshold[4] <= B <= threshold[5])
     )
 
+
 def process_grid_cell(img, roi, thresholds_dict):
     stats = img.get_statistics(roi=roi)
     l, a, b = stats.l_mode(), stats.a_mode(), stats.b_mode()
@@ -131,6 +132,12 @@ def find_largest_blob(blobs):
     return largest
 
 
+def calculate_center(x, y, w, h):
+    center_x = x + w // 2
+    center_y = y + h // 2
+    return (center_x, center_y)
+
+
 thresholds_dict = {
     "wall": (40, 100, -3, 127, -51, 127),
     "player": (44, 100, -128, -23, -128, 78),
@@ -172,7 +179,15 @@ while True:
     # except Exception:
     #     pass
     color_img = img.copy()
-    binary_img = img.binary([thresholds_dict["floor"]])
+    binary_img = img.binary(
+        [
+            thresholds_dict["floor"],
+            thresholds_dict["bomb"],
+            thresholds_dict["player"],
+            thresholds_dict["box"],
+        ]
+    )
+
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
@@ -197,7 +212,7 @@ while True:
     largest_floor_blob = find_largest_blob(floor_blobs)
     if largest_floor_blob and display_dict["floor"]:
         blob = largest_floor_blob
-        img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=1)
+        img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
         x, y, w, h = blob.rect()
         step_x = w / 14.0
         step_y = h / 10.0
@@ -207,10 +222,10 @@ while True:
         goal_coords_list = []
         for col in range(14):
             for row in range(10):
-                grid_x = int(base_x + col * step_x)
-                grid_y = int(base_y + row * step_y)
-                grid_w = int(step_x)
-                grid_h = int(step_y)
+                grid_x = int(base_x + col * step_x + step_x * 0.2)
+                grid_y = int(base_y + row * step_y + step_y * 0.2)
+                grid_w = int(step_x - step_x * 0.4)
+                grid_h = int(step_y - step_y * 0.4)
 
                 # 边界检查
                 if grid_x < 0:
@@ -225,12 +240,24 @@ while True:
                     continue
 
                 roi = (grid_x, grid_y, grid_w, grid_h)
-                img.draw_rectangle(roi, color=(0, 255, 0), thickness=1)
-                stats = img.get_statistics(roi=roi)
+
+                stats = color_img.get_statistics(roi=roi)
                 l, a, b = stats.l_mode(), stats.a_mode(), stats.b_mode()
 
-                if check_threshold(l, a, b, thresholds_dict["floor"]):
+                if (
+                    check_threshold(l, a, b, thresholds_dict["floor"])
+                    or check_threshold(l, a, b, thresholds_dict["bomb"])
+                    or check_threshold(l, a, b, thresholds_dict["player"])
+                    or check_threshold(l, a, b, thresholds_dict["box"])
+                ):
                     map_grid[row][col] = 1
+                    img.draw_rectangle(roi, color=(255, 0, 0), thickness=1)
+                    img.draw_circle(
+                        calculate_center(grid_x, grid_y, grid_w, grid_h)[0],
+                        calculate_center(grid_x, grid_y, grid_w, grid_h)[1],
+                        1,
+                        color=(0, 0, 255),
+                    )
                 if check_threshold(l, a, b, thresholds_dict["goal"]):
                     goal_coords_list.append([row, col])
                     map_grid[row][col] = 2
