@@ -145,11 +145,14 @@ thresholds_dict = {
     "player_back": (),
     "box": (49, 100, -31, 1, 32, 127),
     "goal": (50, 72, 80, 98, -70, -15),
-    "bomb": (50, 100, 75, 127, -55, 127),
-    # (0, 30, 0, 127, -128, 127) (40, 100, 55, 127, -50, 50)
-    "floor": (0, 50, 26, 127, -128, -66),
+    "bomb": (45, 100, 65, 127, -5, 127),
+    # (50, 100, 75, 127, -55, 127),
+    # (0, 30, 0, 127, -128, 127),
+    # (40, 100, 55, 127, -50, 50)
+    "floor": (25, 100, 40, 80, -128, -80),
+    # (0, 50, 26, 127, -128, -66),
     # (25, 50, 25, 127, -128, -50)
-    #   (0, 50, 25, 127, -128, -75)
+    # (0, 50, 25, 127, -128, -75)
 }
 
 display_dict = {
@@ -179,14 +182,14 @@ while True:
     # except Exception:
     #     pass
     color_img = img.copy()
-    binary_img = img.binary(
-        [
-            thresholds_dict["floor"],
-            thresholds_dict["bomb"],
-            thresholds_dict["player"],
-            thresholds_dict["box"],
-        ]
-    )
+    # binary_img = img.binary(
+    #     [
+    #         thresholds_dict["floor"],
+    #         thresholds_dict["bomb"],
+    #         thresholds_dict["player"],
+    #         thresholds_dict["box"],
+    #     ]
+    # )
 
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
@@ -218,6 +221,14 @@ while True:
         step_y = h / 10.0
         base_x = x
         base_y = y
+
+        # 创建二值化图像用于快速判断
+        floor_binary = color_img.binary([thresholds_dict["floor"]])
+        goal_binary = color_img.binary([thresholds_dict["goal"]])
+        bomb_binary = color_img.binary([thresholds_dict["bomb"]])
+        player_binary = color_img.binary([thresholds_dict["player"]])
+        box_binary = color_img.binary([thresholds_dict["box"]])
+
         map_grid = [[0] * 14 for _ in range(10)]
         goal_coords_list = []
         for col in range(14):
@@ -241,26 +252,46 @@ while True:
 
                 roi = (grid_x, grid_y, grid_w, grid_h)
 
-                stats = color_img.get_statistics(roi=roi)
-                l, a, b = stats.l_mode(), stats.a_mode(), stats.b_mode()
+                # 在二值化图像中统计白色像素比例
+                goal_stats = goal_binary.get_statistics(roi=roi)
+                floor_stats = floor_binary.get_statistics(roi=roi)
+                bomb_stats = bomb_binary.get_statistics(roi=roi)
+                player_stats = player_binary.get_statistics(roi=roi)
+                box_stats = box_binary.get_statistics(roi=roi)
 
-                if (
-                    check_threshold(l, a, b, thresholds_dict["floor"])
-                    or check_threshold(l, a, b, thresholds_dict["bomb"])
-                    or check_threshold(l, a, b, thresholds_dict["player"])
-                    or check_threshold(l, a, b, thresholds_dict["box"])
+                # 计算白色像素比例（L_mean最大值为100，归一化到0-1）
+                goal_ratio = goal_stats.l_mean() / 100.0
+                floor_ratio = floor_stats.l_mean() / 100.0
+                bomb_ratio = bomb_stats.l_mean() / 100.0
+                player_ratio = player_stats.l_mean() / 100.0
+                box_ratio = box_stats.l_mean() / 100.0
+
+                # 根据白色像素比例判断（阈值可调整，建议0.3-0.5）
+                threshold = 0.4  # 40%的像素匹配即认为是该类型
+
+                if goal_ratio > threshold:
+                    goal_coords_list.append([row, col])
+                    map_grid[row][col] = 2
+                    img.draw_rectangle(
+                        roi, color=(255, 255, 0), thickness=1
+                    )  # 黄色标记goal
+                elif (
+                    floor_ratio > threshold
+                    or bomb_ratio > threshold
+                    or player_ratio > threshold
+                    or box_ratio > threshold
                 ):
                     map_grid[row][col] = 1
                     img.draw_rectangle(roi, color=(255, 0, 0), thickness=1)
                     img.draw_circle(
                         calculate_center(grid_x, grid_y, grid_w, grid_h)[0],
                         calculate_center(grid_x, grid_y, grid_w, grid_h)[1],
-                        1,
+                        2,
                         color=(0, 0, 255),
+                        fill=True,
                     )
-                if check_threshold(l, a, b, thresholds_dict["goal"]):
-                    goal_coords_list.append([row, col])
-                    map_grid[row][col] = 2
+                else:
+                    map_grid[row][col] = 0
     # # 玩家检测
     # player_blob = detect_player(
     #     color_img, thresholds_dict["player"], pixels_threshold=15, merge=True, margin=5

@@ -123,7 +123,8 @@ thresholds_dict = {
     "goal": (50, 72, 80, 98, -70, -15),
     "bomb": (50, 100, 75, 127, -55, 127),
     # (0, 30, 0, 127, -128, 127) (40, 100, 55, 127, -50, 50)
-    "floor": (0, 50, 26, 127, -128, -66),
+    "floor": (25, 100, 40, 80, -128, -80)
+    #(0, 50, 26, 127, -128, -66),
     # (25, 50, 25, 127, -128, -50)
     #   (0, 50, 25, 127, -128, -75)
 }
@@ -140,11 +141,11 @@ display_dict = {
 
 while True:
     img = sensor.snapshot()
-    # try:
-    #     ld_img = image.Image("/sd/firmware_ready.bmp")
-    #     img.draw_image(ld_img, 0, 0, x_scale=0.5, y_scale=0.5)
-    # except Exception:
-    #     pass
+    try:
+        ld_img = image.Image("/sd/firmware_ready.bmp")
+        img.draw_image(ld_img, 0, 0, x_scale=0.5, y_scale=0.5)
+    except Exception:
+        pass
     color_img = img.copy()
     binary_img = img.binary([thresholds_dict["floor"]])
     current_lightness = color_img.get_statistics().l_median()
@@ -152,47 +153,47 @@ while True:
     sensor.set_brightness(brightness_output)
     print(current_lightness, brightness_output)
 
-    blobs = color_img.find_blobs(
-        [thresholds_dict["floor"]],
-        pixels_threshold=15,
-        merge=True,
-        margin=1,
-    )
-    largest_blob = find_largest_blob(blobs)
-    if largest_blob:
-        blob = largest_blob
-        img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=2)
-        min_corners = blob.min_corners()
-        for corner in min_corners:
-            img.draw_circle(corner[0], corner[1], 3, color=(0, 0, 255), thickness=2)
-        x, y, w, h = blob.rect()
-        step_x = w / 14.0
-        step_y = h / 10.0
-        base_x = x
-        base_y = y
+    # blobs = color_img.find_blobs(
+    #     [thresholds_dict["floor"]],
+    #     pixels_threshold=15,
+    #     merge=True,
+    #     margin=1,
+    # )
+    # largest_blob = find_largest_blob(blobs)
+    # if largest_blob:
+    #     blob = largest_blob
+    #     img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=2)
+    #     min_corners = blob.min_corners()
+    #     for corner in min_corners:
+    #         img.draw_circle(corner[0], corner[1], 3, color=(0, 0, 255), thickness=2)
+    #     x, y, w, h = blob.rect()
+    #     step_x = w / 14.0
+    #     step_y = h / 10.0
+    #     base_x = x
+    #     base_y = y
 
-        for col in range(14):
-            for row in range(10):
-                grid_x = int(base_x + col * step_x)
-                grid_y = int(base_y + row * step_y)
-                grid_w = int(step_x)
-                grid_h = int(step_y)
+    #     for col in range(14):
+    #         for row in range(10):
+    #             grid_x = int(base_x + col * step_x)
+    #             grid_y = int(base_y + row * step_y)
+    #             grid_w = int(step_x)
+    #             grid_h = int(step_y)
 
-                # 边界检查
-                if grid_x < 0:
-                    grid_x = 0
-                if grid_y < 0:
-                    grid_y = 0
-                if grid_x + grid_w > img.width():
-                    grid_w = img.width() - grid_x
-                if grid_y + grid_h > img.height():
-                    grid_h = img.height() - grid_y
+    #             # 边界检查
+    #             if grid_x < 0:
+    #                 grid_x = 0
+    #             if grid_y < 0:
+    #                 grid_y = 0
+    #             if grid_x + grid_w > img.width():
+    #                 grid_w = img.width() - grid_x
+    #             if grid_y + grid_h > img.height():
+    #                 grid_h = img.height() - grid_y
 
-                if grid_w <= 0 or grid_h <= 0:
-                    continue
+    #             if grid_w <= 0 or grid_h <= 0:
+    #                 continue
 
-                roi = (grid_x, grid_y, grid_w, grid_h)
+    #             roi = (grid_x, grid_y, grid_w, grid_h)
 
-                img.draw_rectangle(roi, color=(0, 255, 0), thickness=1)
+    #             img.draw_rectangle(roi, color=(0, 255, 0), thickness=1)
 
     print(current_lightness, brightness_output)
