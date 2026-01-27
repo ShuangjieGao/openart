@@ -4,8 +4,8 @@ import sensor
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QQVGA)
-sensor.set_auto_gain(True)
-sensor.set_auto_whitebal(True)
+sensor.set_auto_gain(False)
+sensor.set_auto_whitebal(False)
 sensor.set_auto_exposure(False, 1)
 sensor.set_brightness(1)
 
@@ -142,12 +142,13 @@ display_dict = {
 while True:
     img = sensor.snapshot()
     try:
-        ld_img = image.Image("/sd/firmware_ready.bmp")
-        img.draw_image(ld_img, 0, 0, x_scale=0.5, y_scale=0.5)
+        ld_img = image.Image("/sd/img6.bmp")
+        img.draw_image(ld_img, 0, 0, x_scale=1, y_scale=1)
     except Exception:
         pass
     color_img = img.copy()
-    binary_img = img.binary([thresholds_dict["floor"]])
+    img.median(1)
+    # binary_img = img.binary([thresholds_dict["floor"]])
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
