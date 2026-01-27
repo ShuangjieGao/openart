@@ -194,16 +194,16 @@ while True:
     color_img = img.copy()  # 保留原始图像
     # flat_field = image.Image("img3.bmp")
     # corrected_img = img.div(flat_field, shift_bits=8)
-    binary_img = img.copy().binary(
-        [
-            # thresholds_dict["floor"],
-            thresholds_dict["goal"],
-            # thresholds_dict["bomb"],
-            # thresholds_dict["player"],
-            # thresholds_dict["box"],
-        ]
-    )
-    img.draw_image(binary_img, 0, 0, x_scale=0.5, y_scale=0.5)
+    # binary_img = img.copy().binary(
+    #     [
+    #         # thresholds_dict["floor"],
+    #         thresholds_dict["goal"],
+    #         # thresholds_dict["bomb"],
+    #         # thresholds_dict["player"],
+    #         # thresholds_dict["box"],
+    #     ]
+    # )
+    # img.draw_image(binary_img, 0, 0, x_scale=0.5, y_scale=0.5)
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
