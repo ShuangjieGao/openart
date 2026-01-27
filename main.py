@@ -10,9 +10,10 @@ white = LED(4)
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QQVGA)
-sensor.set_auto_gain(False)
 sensor.set_auto_whitebal(False)
+sensor.set_auto_gain(False)
 sensor.set_auto_exposure(False, 1)
+sensor.skip_frames(time=2000)
 sensor.set_brightness(1000)
 try:
     uart = UART(12, baudrate=115200)
@@ -59,19 +60,16 @@ def pixel_to_ratio(
     target_width=320,
     target_height=240,
 ):
-
     if reference_rect:
-        ref_x, ref_y, ref_w, ref_h = reference_rect
-        x_norm = (x - ref_x) / ref_w if ref_w > 0 else 0
-        y_norm = (y - ref_y) / ref_h if ref_h > 0 else 0
+        rx, ry, rw, rh = reference_rect
+        x_norm = (x - rx) / rw if rw else 0
+        y_norm = (y - ry) / rh if rh else 0
     else:
         x_norm = x / img_width
         y_norm = y / img_height
-    x_norm = max(0, min(1, x_norm))
-    y_norm = max(0, min(1, y_norm))
-    x_ratio = x_norm * target_width
-    y_ratio = y_norm * target_height
-    return (x_ratio, y_ratio)
+    x_norm = min(1, max(0, x_norm))
+    y_norm = min(1, max(0, y_norm))
+    return (x_norm * target_width, y_norm * target_height)
 
 
 def check_threshold(L, A, B, threshold):
@@ -121,18 +119,7 @@ def build_packet(player_blob, box_blob, goal_coords_list, floor_corners):
 
 
 def find_largest_blob(blobs):
-    if not blobs:
-        return None
-
-    largest = None
-    max_pixels = 0
-
-    for blob in blobs:
-        if blob.pixels() > max_pixels:
-            max_pixels = blob.pixels()
-            largest = blob
-
-    return largest
+    return max(blobs, key=lambda b: b.pixels(), default=None)
 
 
 def calculate_center(x, y, w, h):
@@ -184,7 +171,6 @@ brightness_pid = PIDController(
 
 
 while True:
-
     img = sensor.snapshot()
     # try:
     #     ld_img = image.Image("/sd/img1.bmp")
@@ -208,17 +194,6 @@ while True:
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
     print(current_lightness, brightness_output)
-
-    # wall_blobs = color_img.find_blobs(
-    #     [thresholds_dict["floor"]], pixels_threshold=15, merge=True, margin=1
-    # )
-    # wall_blob = find_largest_blob(wall_blobs)
-    # if wall_blob and display_dict["wall"]:
-    #     img.draw_rectangle(wall_blob.rect(), color=(0, 0, 255), thickness=2)
-    #     img.draw_circle(
-    #         wall_blob.cx(), wall_blob.cy(), 2, color=(255, 0, 0), thickness=2
-    #     )
-
     floor_blobs = color_img.find_blobs(
         [thresholds_dict["floor"]],
         pixels_threshold=100,
