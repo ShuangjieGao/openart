@@ -70,16 +70,14 @@ def monitor_cameras():
         cap.release()
     cv2.destroyAllWindows()
 
-# 屏幕设置 (放大 2 倍)
-SCALE_FACTOR = 2
+# 屏幕设置 (原始比例)
+SCALE_FACTOR = 1
 MARGIN = 40 * SCALE_FACTOR
 ARENA_WIDTH = 320 * SCALE_FACTOR
 ARENA_HEIGHT = 240 * SCALE_FACTOR
 SCREEN_WIDTH = ARENA_WIDTH + 2 * MARGIN
 SCREEN_HEIGHT = ARENA_HEIGHT + 2 * MARGIN
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Virtual Arena Simulation (Scaled)")
 
 # 颜色定义
 WHITE = (255, 255, 255)
@@ -104,6 +102,7 @@ TAG_CAR_PATH = "assets/tag16_05_00001.png"
 BORDER_WIDTH = 5 * SCALE_FACTOR
 TAG_SIZE = 20 * SCALE_FACTOR
 BOX_SIZE = 20 * SCALE_FACTOR
+TAG_CAR_SIZE = 15 * SCALE_FACTOR  # 小车上的Tag大小
 
 # 小车设置
 CAR_WIDTH = 30 * SCALE_FACTOR
@@ -234,48 +233,29 @@ class Car:
             # 布局应该是：[红7.5cm] [Tag 15cm] [黄7.5cm]
             
             # 更新布局参数
-            tag_size = 15.0 # 15cm
-            side_width = (self.width - tag_size) / 2.0 # (30-15)/2 = 7.5cm
+            tag_size = TAG_CAR_SIZE # 使用全局定义的Tag大小
+            side_width = (self.width - tag_size) / 2.0 
             
             # 重绘整个背景以适应新比例
             car_surf.fill((0,0,0,0)) # 清空
             
-            # 红色矩形 (左侧: 0 到 7.5)
-            # 使用 math.ceil 确保覆盖接缝，或者直接用 float
+            # 红色矩形 (左侧)
             pygame.draw.rect(car_surf, RED, (0, 0, side_width, self.height))
             
-            # 中间白色背景 (Tag区域: 7.5 到 22.5)
-            # 注意：Rect 只接受整数，所以需要仔细处理浮点数转换，避免1px的缝隙或重叠
-            # 红色：0 ~ 7
-            # Tag：8 ~ 22 (15px)
-            # 黄色：23 ~ 30
-            
-            red_w = int(side_width) # 7
-            tag_w = int(tag_size)   # 15
-            
-            # 渲染策略：先画背景，再叠加Tag，避免任何缝隙问题
-            
-            # 1. 绘制背景 (红-白-黄)
-            # 左侧红色 (0 ~ 7.5)
-            red_rect = pygame.Rect(0, 0, int(side_width), self.height)
-            pygame.draw.rect(car_surf, RED, red_rect)
-            
-            # 右侧黄色 (22.5 ~ 30)
-            # 简化计算：从右边往回算，确保占满右侧
-            yellow_width = int(side_width)
+            # 右侧黄色
+            yellow_width = side_width
             yellow_x = self.width - yellow_width
             yellow_rect = pygame.Rect(yellow_x, 0, yellow_width, self.height)
             pygame.draw.rect(car_surf, YELLOW, yellow_rect)
             
             # 中间白色 (填充剩余空间)
-            # 从 red_rect.right 到 yellow_rect.left
-            white_x = red_rect.right
-            white_width = yellow_rect.left - white_x
+            white_x = side_width
+            white_width = yellow_x - white_x
             white_rect = pygame.Rect(white_x, 0, white_width, self.height)
             pygame.draw.rect(car_surf, WHITE, white_rect)
 
             # 2. 叠加 Apriltag
-            # 严格居中绘制，不依赖背景色块的边界
+            # 严格居中绘制
             tag_w = int(tag_size)
             tag_h = int(tag_size)
             scaled_tag = pygame.transform.scale(tag_img, (tag_w, tag_h))
@@ -323,6 +303,12 @@ import threading
 def main():
     clock = pygame.time.Clock()
     
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.RESIZABLE)
+    pygame.display.set_caption("Virtual Arena Simulation (Scaled)")
+    
+    # 创建一个固定分辨率的画布用于绘图
+    canvas = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    
     # 启动摄像头监控线程 (自动验证)
     # monitor_thread = threading.Thread(target=monitor_cameras, daemon=True)
     # monitor_thread.start()
@@ -355,33 +341,55 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
         
         keys = pygame.key.get_pressed()
         car.move(keys)
         
         # 绘制背景 (填充灰色)
-        screen.fill(GRAY) 
+        canvas.fill(GRAY) 
         
         # 绘制黄色边界 (场地内)
         # 场地左上角现在是 (MARGIN, MARGIN)
         arena_rect = pygame.Rect(MARGIN, MARGIN, ARENA_WIDTH, ARENA_HEIGHT)
         
         # 绘制场地背景 (蓝色)
-        pygame.draw.rect(screen, BLUE, arena_rect)
+        pygame.draw.rect(canvas, BLUE, arena_rect)
         
         # 绘制黄色边界 (覆盖在背景之上)
-        pygame.draw.rect(screen, YELLOW, arena_rect, BORDER_WIDTH)
+        pygame.draw.rect(canvas, YELLOW, arena_rect, BORDER_WIDTH)
         
         # 绘制四个角的 Apriltag
-        draw_arena_markers(screen)
+        draw_arena_markers(canvas)
         
         # 绘制小车
-        car.draw(screen)
+        car.draw(canvas)
         
         # 显示调试信息 (小车真实坐标)
         debug_text = f"Car: ({int(car.x)}, {int(car.y)}) Angle: {int(car.angle)%360}"
         text_surf = font.render(debug_text, True, RED)
-        screen.blit(text_surf, (10, 10))
+        canvas.blit(text_surf, (10, 10))
+        
+        # 将画布缩放并绘制到屏幕上 (保持纵横比)
+        screen_w, screen_h = screen.get_size()
+        canvas_w, canvas_h = canvas.get_size()
+        
+        scale_w = screen_w / canvas_w
+        scale_h = screen_h / canvas_h
+        scale = min(scale_w, scale_h)
+        
+        new_w = int(canvas_w * scale)
+        new_h = int(canvas_h * scale)
+        
+        scaled_canvas = pygame.transform.scale(canvas, (new_w, new_h))
+        
+        # 居中显示
+        x_offset = (screen_w - new_w) // 2
+        y_offset = (screen_h - new_h) // 2
+        
+        screen.fill(BLACK) # 填充黑边
+        screen.blit(scaled_canvas, (x_offset, y_offset))
         
         pygame.display.flip()
         

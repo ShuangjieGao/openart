@@ -149,7 +149,8 @@ display_dict = {
     "goal": False,
     "bomb": False,
     "floor": True,
-    "grid": True,
+    "grid": False,
+    "bin": False,
 }
 
 brightness_pid = PIDController(
@@ -165,29 +166,30 @@ brightness_pid = PIDController(
 while True:
     img = sensor.snapshot()
     try:
-        ld_img = image.Image("/sd/img1.bmp")
+        ld_img = image.Image("/sd/img2.bmp")
         img.draw_image(ld_img, 0, 0, x_scale=1, y_scale=1)
     except Exception:
         pass
     color_img = img.copy()  # 保留原始图像
     # flat_field = image.Image("bin.bmp")
     # corrected_img = img.div(flat_field, shift_bits=8)
-    binary_img = (
-        img.copy().binary(
-            [
-                # thresholds_dict["floor"],
-                # thresholds_dict["goal"],
-                # thresholds_dict["bomb"],
-                thresholds_dict["player"],
-                # thresholds_dict["box"],
-            ]
+    if display_dict["bin"]:
+        binary_img = (
+            img.copy().binary(
+                [
+                    # thresholds_dict["floor"],
+                    # thresholds_dict["goal"],
+                    # thresholds_dict["bomb"],
+                    thresholds_dict["player"],
+                    # thresholds_dict["box"],
+                ]
+            )
+            # .median(3)
+            .mean(1)
+            # .dilate(1)
+            # .erode(1)
         )
-        # .median(3)
-        .mean(1)
-        # .dilate(1)
-        # .erode(1)
-    )
-    img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
+        img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
@@ -211,8 +213,10 @@ while True:
         margin=1,
     )
     largest_floor_blob = find_largest_blob(floor_blobs)
+
     if largest_floor_blob:
         blob = largest_floor_blob
+        print(blob.pixels())
         if display_dict["floor"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
         x, y, w, h = blob.rect()
@@ -310,10 +314,16 @@ while True:
         blob = largest_player_blob
         if display_dict["player"]:
             img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=1)
+            print(blob.pixels())
+            angle_deg = blob.rotation_deg()
+            angle_rad = blob.rotation_rad()
+            print(f"Player angle: {angle_deg:.2f}° ({angle_rad:.3f} rad)")
+            x1, y1, x2, y2 = blob.major_axis_line()
+            img.draw_line((x1, y1, x2, y2), color=(255, 255, 0), thickness=2)
     # 箱子检测
     box_blobs = color_img.find_blobs(
         [thresholds_dict["box"]],
-        pixels_threshold=100,
+        pixels_threshold=10,
         merge=True,
         margin=1,
     )
