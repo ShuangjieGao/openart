@@ -170,7 +170,7 @@ while True:
     except Exception:
         pass
     color_img = img.copy()  # 保留原始图像
-    # flat_field = image.Image("img3.bmp")
+    # flat_field = image.Image("bin.bmp")
     # corrected_img = img.div(flat_field, shift_bits=8)
     binary_img = (
         img.copy().binary(
@@ -192,17 +192,18 @@ while True:
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
     print(current_lightness, brightness_output)
-    # wall_blobs = color_img.find_blobs(
-    #     [thresholds_dict["wall"]],
-    #     pixels_threshold=100,
-    #     merge=True,
-    #     margin=1,
-    # )
-    # largest_wall_blob = find_largest_blob(wall_blobs)
-    # if largest_wall_blob:
-    #     blob = largest_wall_blob
-    #     if display_dict["wall"]:
-    #         img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
+    if display_dict["wall"]:
+        wall_blobs = color_img.find_blobs(
+            [thresholds_dict["wall"]],
+            pixels_threshold=100,
+            merge=True,
+            margin=1,
+        )
+        largest_wall_blob = find_largest_blob(wall_blobs)
+        if largest_wall_blob:
+            blob = largest_wall_blob
+            if display_dict["wall"]:
+                img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
     floor_blobs = color_img.find_blobs(
         [thresholds_dict["floor"]],
         pixels_threshold=100,
