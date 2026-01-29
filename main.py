@@ -62,13 +62,13 @@ def pixel_to_ratio(
 ):
     if reference_rect:
         rx, ry, rw, rh = reference_rect
-        x_norm = (x - rx) / rw if rw else 0
-        y_norm = (y - ry) / rh if rh else 0
+        x_norm = (x - rx) / rw if rw > 0 else 0
+        y_norm = (y - ry) / rh if rh > 0 else 0
     else:
-        x_norm = x / img_width
-        y_norm = y / img_height
-    x_norm = min(1, max(0, x_norm))
-    y_norm = min(1, max(0, y_norm))
+        x_norm = x / img_width if img_width > 0 else 0
+        y_norm = y / img_height if img_height > 0 else 0
+    x_norm = max(0.0, min(1.0, x_norm))
+    y_norm = max(0.0, min(1.0, y_norm))
     return (x_norm * target_width, y_norm * target_height)
 
 
@@ -80,20 +80,9 @@ def check_threshold(L, A, B, threshold):
     )
 
 
-def process_grid_cell(img, roi, thresholds_dict):
-    stats = img.get_statistics(roi=roi)
-    l, a, b = stats.l_mode(), stats.a_mode(), stats.b_mode()
-    is_goal = check_threshold(l, a, b, thresholds_dict["goal"])
-    is_floor = check_threshold(l, a, b, thresholds_dict["floor"])
-    if is_goal:
-        return 2
-    elif is_floor:
-        return 1
-    else:
-        return 0
-
-
-def build_packet(player_blob, box_blob, goal_coords_list, floor_corners):
+def build_packet(
+    player_blob, box_blob, goal_coords_list, floor_corners, reference_rect=None
+):
     packet = {
         "player_coords": None,
         "box_coords": None,
@@ -107,13 +96,12 @@ def build_packet(player_blob, box_blob, goal_coords_list, floor_corners):
     if goal_coords_list:
         packet["goal_coords"] = goal_coords_list
     if player_blob:
-        center = (player_blob.cx(), player_blob.cy())
-        if center:
-            packet["player_coords"] = center
+        center_x, center_y = player_blob.cx(), player_blob.cy()
+        packet["player_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
+
     if box_blob:
-        center = (box_blob.cx(), box_blob.cy())
-        if center:
-            packet["box_coords"] = center
+        center_x, center_y = box_blob.cx(), box_blob.cy()
+        packet["box_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
 
     return packet
 
@@ -129,17 +117,21 @@ def calculate_center(x, y, w, h):
 
 
 thresholds_dict = {
-    "wall": (40, 100, -3, 127, -51, 127),
+    "wall": (20, 100, -128, 127, -80, 127),
+    # (40, 100, -3, 127, -51, 127),
     "player": (44, 100, -128, -23, -128, 78),
     "player_front": (),
     "player_back": (),
-    "box": (49, 100, -31, 1, 32, 127),
-    "goal": (0, 100, 45, 127, -80, -30),
+    "box": (65, 100, -50, 50, 50, 127),
+    # (49, 100, -31, 1, 32, 127),
+    "goal": (40, 100, 85, 127, -75, -50),
+    # (0, 100, 45, 127, -80, -30),
     # (0, 100, 85, 127, -128, -30),
     # (40, 100, 75, 127, -95, -35),
     # (50, 72, 80, 98, -70, -15),
     # (40, 100, 75, 127, -95, -35)
-    "bomb": (45, 100, 65, 127, -5, 127),
+    "bomb": (40, 100, 50, 127, -35, 50),
+    # (45, 100, 65, 127, -5, 127),
     # (50, 100, 75, 127, -55, 127),
     # (0, 30, 0, 127, -128, 127),
     # (40, 100, 55, 127, -50, 50)
@@ -152,7 +144,7 @@ thresholds_dict = {
 
 display_dict = {
     "wall": False,
-    "player": False,
+    "player": True,
     "box": False,
     "goal": False,
     "bomb": False,
@@ -172,28 +164,45 @@ brightness_pid = PIDController(
 
 while True:
     img = sensor.snapshot()
-    # try:
-    #     ld_img = image.Image("/sd/img1.bmp")
-    #     img.draw_image(ld_img, 0, 0, x_scale=0.5, y_scale=0.5)
-    # except Exception:
-    #     pass
+    try:
+        ld_img = image.Image("/sd/img1.bmp")
+        img.draw_image(ld_img, 0, 0, x_scale=1, y_scale=1)
+    except Exception:
+        pass
     color_img = img.copy()  # 保留原始图像
     # flat_field = image.Image("img3.bmp")
     # corrected_img = img.div(flat_field, shift_bits=8)
-    # binary_img = img.copy().binary(
-    #     [
-    #         # thresholds_dict["floor"],
-    #         thresholds_dict["goal"],
-    #         # thresholds_dict["bomb"],
-    #         # thresholds_dict["player"],
-    #         # thresholds_dict["box"],
-    #     ]
-    # )
-    # img.draw_image(binary_img, 0, 0, x_scale=0.5, y_scale=0.5)
+    binary_img = (
+        img.copy().binary(
+            [
+                # thresholds_dict["floor"],
+                # thresholds_dict["goal"],
+                # thresholds_dict["bomb"],
+                thresholds_dict["player"],
+                # thresholds_dict["box"],
+            ]
+        )
+        # .median(3)
+        .mean(1)
+        # .dilate(1)
+        # .erode(1)
+    )
+    img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
     print(current_lightness, brightness_output)
+    # wall_blobs = color_img.find_blobs(
+    #     [thresholds_dict["wall"]],
+    #     pixels_threshold=100,
+    #     merge=True,
+    #     margin=1,
+    # )
+    # largest_wall_blob = find_largest_blob(wall_blobs)
+    # if largest_wall_blob:
+    #     blob = largest_wall_blob
+    #     if display_dict["wall"]:
+    #         img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
     floor_blobs = color_img.find_blobs(
         [thresholds_dict["floor"]],
         pixels_threshold=100,
@@ -201,7 +210,7 @@ while True:
         margin=1,
     )
     largest_floor_blob = find_largest_blob(floor_blobs)
-    if largest_floor_blob and display_dict["floor"]:
+    if largest_floor_blob:
         blob = largest_floor_blob
         if display_dict["floor"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
@@ -223,7 +232,8 @@ while True:
                     thresholds_dict["box"],
                 ]
             )
-            .erode(1)
+            .mean(1)
+            # .erode(1)
         )
         goal_binary_img = (
             color_img.copy()
@@ -234,6 +244,7 @@ while True:
             )
             .erode(1)
         )
+
         map_grid = [[0] * 14 for _ in range(10)]
         goal_coords_list = []
         for col in range(14):
@@ -257,33 +268,39 @@ while True:
 
                 roi = (grid_x, grid_y, grid_w, grid_h)
                 floor_stats = floor_binary_img.get_statistics(roi=roi)
-                goal_stats = goal_binary_img.get_statistics(roi=roi)
                 floor_white_ratio = floor_stats.l_mean() / 100.0
+                goal_stats = goal_binary_img.get_statistics(roi=roi)
                 goal_white_ratio = goal_stats.l_mean() / 100.0
                 threshold = 0.4
 
                 if goal_white_ratio > threshold:
-                    goal_coords_list.append([row, col])
+                    # Calculate center of the grid cell
+                    center_x, center_y = calculate_center(
+                        grid_x, grid_y, grid_w, grid_h
+                    )
+                    # Convert to ratio coordinates using the floor blob as reference
+                    goal_coords = pixel_to_ratio(
+                        center_x, center_y, reference_rect=blob.rect()
+                    )
+                    goal_coords_list.append(goal_coords)
+
                     map_grid[row][col] = 2
                     if display_dict["grid"]:
-                        img.draw_rectangle(roi, color=(255, 255, 0), thickness=1)
+                        img.draw_rectangle(
+                            roi, color=(255, 255, 0), thickness=1, fill=True
+                        )
                 elif floor_white_ratio > threshold:
                     map_grid[row][col] = 1
                     if display_dict["grid"]:
-                        img.draw_rectangle(roi, color=(255, 255, 255), thickness=1)
-                    # img.draw_circle(
-                    #     calculate_center(grid_x, grid_y, grid_w, grid_h)[0],
-                    #     calculate_center(grid_x, grid_y, grid_w, grid_h)[1],
-                    #     2,
-                    #     color=(0, 0, 255),
-                    #     fill=True,
-                    # )
+                        img.draw_rectangle(
+                            roi, color=(0, 255, 0), thickness=1, fill=True
+                        )
                 else:
                     map_grid[row][col] = 0
     # 玩家检测
     player_blobs = color_img.find_blobs(
         [thresholds_dict["player"]],
-        pixels_threshold=100,
+        pixels_threshold=10,
         merge=True,
         margin=1,
     )
@@ -291,7 +308,7 @@ while True:
     if largest_player_blob:
         blob = largest_player_blob
         if display_dict["player"]:
-            img.draw_rectangle(blob.rect(), color=(255, 255, 255), thickness=1)
+            img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=1)
     # 箱子检测
     box_blobs = color_img.find_blobs(
         [thresholds_dict["box"]],
