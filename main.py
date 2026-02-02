@@ -144,8 +144,8 @@ thresholds_dict = {
 
 display_dict = {
     "wall": False,
-    "player": True,
-    "box": False,
+    "player": False,
+    "box": True,
     "goal": False,
     "bomb": False,
     "floor": True,
@@ -166,7 +166,7 @@ brightness_pid = PIDController(
 while True:
     img = sensor.snapshot()
     try:
-        ld_img = image.Image("/sd/img2.bmp")
+        ld_img = image.Image("/sd/img3.bmp")
         img.draw_image(ld_img, 0, 0, x_scale=1, y_scale=1)
     except Exception:
         pass
@@ -193,7 +193,7 @@ while True:
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
-    print(current_lightness, brightness_output)
+    img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
     if display_dict["wall"]:
         wall_blobs = color_img.find_blobs(
             [thresholds_dict["wall"]],
@@ -216,7 +216,7 @@ while True:
 
     if largest_floor_blob:
         blob = largest_floor_blob
-        print(blob.pixels())
+        # print(blob.pixels())
         if display_dict["floor"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
         x, y, w, h = blob.rect()
@@ -314,38 +314,36 @@ while True:
         blob = largest_player_blob
         if display_dict["player"]:
             img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=1)
-            print(blob.pixels())
+            # print(blob.pixels())
             angle_deg = blob.rotation_deg()
             angle_rad = blob.rotation_rad()
-            print(f"Player angle: {angle_deg:.2f}° ({angle_rad:.3f} rad)")
+            # print(f"Player angle: {angle_deg:.2f}° ({angle_rad:.3f} rad)")
             x1, y1, x2, y2 = blob.major_axis_line()
             img.draw_line((x1, y1, x2, y2), color=(255, 255, 0), thickness=2)
     # 箱子检测
     box_blobs = color_img.find_blobs(
         [thresholds_dict["box"]],
-        pixels_threshold=10,
-        merge=True,
-        margin=1,
+        pixels_threshold=50,
+        merge=False,
+        margin=5,
     )
     largest_box_blob = find_largest_blob(box_blobs)
     if largest_box_blob:
         blob = largest_box_blob
         if display_dict["box"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
+    
+    # 检测所有箱子并打印数量
+    if display_dict["box"]:
+        for i, box_blob in enumerate(box_blobs):
+            img.draw_rectangle(box_blob.rect(), color=(0, 255, 0), thickness=1)
+            # img.draw_string(box_blob.x(), box_blob.y() - 10, f"Box{i+1}", color=(0, 255, 0))
 
     # map_grid, goal_coords_list, floor_cells, base_x, base_y, step = (
     #     detect_grid_and_floor(color_img, wall_blob, thresholds_dict, display_dict)
     # )
-
-    # if player_blob and display_dict["player"]:
-    #     draw_blob_circle(
-    #         color_img, player_blob, color=(255, 255, 255), radius=2, thickness=2
-    #     )
-    # if box_blob and display_dict["box"]:
-    #     draw_blob_circle(color_img, box_blob, color=(0, 255, 0), radius=3, thickness=2)
-
-    # # 数据包构建和发送
-    # packet = build_packet(player_blob, box_blob, goal_coords_list, stable_floor_corners)
+    # 数据包构建和发送
+    # packet = build_packet(largest_player_blob, largest_box_blob, goal_coords_list, stable_floor_corners)
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
