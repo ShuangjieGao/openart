@@ -347,3 +347,61 @@ while True:
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
+
+def check_threshold(L, A, B, threshold):
+    """
+    检查给定的L、A、B值是否在指定的阈值范围内。
+
+    参数:
+        L (float): 第一个待检查的数值。
+        A (float): 第二个待检查的数值。
+        B (float): 第三个待检查的数值。
+        threshold (list or tuple): 包含六个元素的列表或元组，分别表示L、A、B的最小和最大阈值。
+                                   格式为 [L_min, L_max, A_min, A_max, B_min, B_max]。
+
+    返回:
+        bool: 如果L、A、B都在各自的阈值范围内，返回True；否则返回False。
+    """
+    return (
+        (threshold[0] <= L <= threshold[1])
+        and (threshold[2] <= A <= threshold[3])
+        and (threshold[4] <= B <= threshold[5])
+    )
+def check_threshold(L, A, B, threshold):
+    """
+    检查给定的L、A、B值是否在指定的阈值范围内。
+
+    参数:
+        L (float): 第一个待检查的数值。
+        A (float): 第二个待检查的数值。
+        B (float): 第三个待检查的数值。
+        threshold (list or tuple): 包含六个元素的列表或元组，分别表示L、A、B的最小和最大阈值。
+                                   格式为 [L_min, L_max, A_min, A_max, B_min, B_max]。
+
+    返回:
+        bool: 如果L、A、B都在各自的阈值范围内，返回True；否则返回False。
+    """
+    return (
+        (threshold[0] <= L <= threshold[1])
+        and (threshold[2] <= A <= threshold[3])
+        and (threshold[4] <= B <= threshold[5])
+    )
+def check_threshold(L, A, B, threshold):
+    """
+    检查给定的L、A、B值是否在指定的阈值范围内。
+
+    参数:
+        L (float): 第一个待检查的数值。
+        A (float): 第二个待检查的数值。
+        B (float): 第三个待检查的数值。
+        threshold (list or tuple): 包含六个元素的列表或元组，分别表示L、A、B的最小和最大阈值。
+                                   格式为 [L_min, L_max, A_min, A_max, B_min, B_max]。
+
+    返回:
+        bool: 如果L、A、B都在各自的阈值范围内，返回True；否则返回False。
+    """
+    return (
+        (threshold[0] <= L <= threshold[1])
+        and (threshold[2] <= A <= threshold[3])
+        and (threshold[4] <= B <= threshold[5])
+    )
