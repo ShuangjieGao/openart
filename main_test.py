@@ -1,143 +1,126 @@
-import image
+import time
 import sensor
+import image
+import json
+from machine import UART
+from pyb import LED
 
+white = LED(4)
+clock = time.clock()
+# white.on()
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QQVGA)
-sensor.set_auto_gain(False)
 sensor.set_auto_whitebal(False)
+sensor.set_auto_gain(False)
 sensor.set_auto_exposure(False, 1)
-sensor.set_brightness(1)
+sensor.skip_frames(time=2000)
+sensor.set_brightness(1000)
+try:
+    uart = UART(12, baudrate=115200)
+except Exception:
+    uart = UART(2, baudrate=115200)
 
 
 class PIDController:
-    """
-    标准 PID 控制器 - 增量式实现
-
-    用法：
-        pid = PIDController(Kp=1, Ki=3, Kd=6, setpoint=40, output_min=10, output_max=65535)
-        output = pid.update(current_value)
-    """
-
     def __init__(self, Kp=1, Ki=3, Kd=6, setpoint=0, output_min=0, output_max=100):
-        """
-        初始化 PID 控制器
-
-        Args:
-            Kp: 比例系数
-            Ki: 积分系数
-            Kd: 微分系数
-            setpoint: 目标值
-            output_min: 输出最小值
-            output_max: 输出最大值
-        """
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
         self.setpoint = setpoint
         self.output_min = output_min
         self.output_max = output_max
-
-        # 状态变量
         self.error_last = 0
         self.error_prev = 0
         self.output = 0
 
     def update(self, current_value):
-        """
-        更新 PID 控制器并返回输出值
-
-        Args:
-            current_value: 当前反馈值
-
-        Returns:
-            输出值
-        """
-        # 计算当前误差 e(k) = SP - PV
         error_current = self.setpoint - current_value
-
-        # 计算 PID 三项
-        # P项：比例项
         p_term = error_current - self.error_last
-
-        # I项：积分项
         i_term = error_current
-
-        # D项：微分项
         d_term = error_current - 2 * self.error_last + self.error_prev
-
-        # 计算 PID 输出
         pid_output = self.Kp * p_term + self.Ki * i_term + self.Kd * d_term
-
-        # 累加到当前输出值
         self.output = self.output + pid_output
-
-        # 限制输出范围
         self.output = min(self.output_max, max(self.output_min, self.output))
-
-        # 更新误差变量
         self.error_prev = self.error_last
         self.error_last = error_current
-
         return int(self.output)
 
     def reset(self):
-        """重置 PID 控制器状态"""
         self.error_last = 0
         self.error_prev = 0
         self.output = 0
 
 
+def pixel_to_ratio(
+    x,
+    y,
+    reference_rect=None,
+    img_width=160,
+    img_height=120,
+    target_width=320,
+    target_height=240,
+):
+    if reference_rect:
+        rx, ry, rw, rh = reference_rect
+        x_norm = (x - rx) / rw if rw > 0 else 0
+        y_norm = (y - ry) / rh if rh > 0 else 0
+    else:
+        x_norm = x / img_width if img_width > 0 else 0
+        y_norm = y / img_height if img_height > 0 else 0
+    x_norm = max(0.0, min(1.0, x_norm))
+    y_norm = max(0.0, min(1.0, y_norm))
+    return (x_norm * target_width, y_norm * target_height)
+
+
+def check_threshold(L, A, B, threshold):
+    return (
+        (threshold[0] <= L <= threshold[1])
+        and (threshold[2] <= A <= threshold[3])
+        and (threshold[4] <= B <= threshold[5])
+    )
+
+
+def max_blob(blobs):
+    return max(blobs, key=lambda b: b.pixels(), default=None)
+
+
+def calculate_center(x, y, w, h):
+    center_x = x + w // 2
+    center_y = y + h // 2
+    return (center_x, center_y)
+
+
+thresholds = {
+    "wall": (20, 100, -128, 127, -80, 127),
+    "player": (44, 100, -128, -23, -128, 78),
+    "player_front": (),
+    "player_back": (),
+    "box": (65, 100, -50, 50, 50, 127),
+    "goal": (40, 100, 85, 127, -75, -50),
+    "bomb": (40, 100, 50, 127, -35, 50),
+    "floor": (25, 100, 30, 80, -128, -70),
+}
+
+display = {
+    "wall": False,
+    "player": False,
+    "box": True,
+    "goal": False,
+    "bomb": False,
+    "floor": True,
+    "grid": False,
+    "bin": False,
+}
+
 brightness_pid = PIDController(
     Kp=1,
     Ki=3,
     Kd=6,
-    setpoint=40,
+    setpoint=35,
     output_min=10,
-    output_max=65535,
+    output_max=20000,
 )
-
-
-def find_largest_blob(blobs):
-    """从blob列表中找到最大的blob"""
-    if not blobs:
-        return None
-
-    largest = None
-    max_pixels = 0
-
-    for blob in blobs:
-        if blob.pixels() > max_pixels:
-            max_pixels = blob.pixels()
-            largest = blob
-
-    return largest
-
-
-thresholds_dict = {
-    "wall": (40, 100, -3, 127, -51, 127),
-    "player": (44, 100, -128, -23, -128, 78),
-    "player_front": (),
-    "player_back": (),
-    "box": (49, 100, -31, 1, 32, 127),
-    "goal": (50, 72, 80, 98, -70, -15),
-    "bomb": (50, 100, 75, 127, -55, 127),
-    # (0, 30, 0, 127, -128, 127) (40, 100, 55, 127, -50, 50)
-    "floor": (25, 100, 40, 80, -128, -80)
-    #(0, 50, 26, 127, -128, -66),
-    # (25, 50, 25, 127, -128, -50)
-    #   (0, 50, 25, 127, -128, -75)
-}
-
-display_dict = {
-    "wall": True,
-    "player": False,
-    "box": False,
-    "goal": True,
-    "bomb": False,
-    "floor": True,
-    "grid": False,
-}
 
 while True:
     img = sensor.snapshot()

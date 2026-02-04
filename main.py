@@ -81,29 +81,7 @@ def check_threshold(L, A, B, threshold):
     )
 
 
-def build_packet(
-    player_blob, box_blob, goal_coords_list, floor_corners, reference_rect=None
-):
-    packet = {
-        "player_coords": None,
-        "box_coords": None,
-        "goal_coords": None,
-        "floor_corners": None,
-    }
-    if floor_corners:
-        packet["floor_corners"] = floor_corners
-    if goal_coords_list:
-        packet["goal_coords"] = goal_coords_list
-    if player_blob:
-        center_x, center_y = player_blob.cx(), player_blob.cy()
-        packet["player_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
-    if box_blob:
-        center_x, center_y = box_blob.cx(), box_blob.cy()
-        packet["box_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
-    return packet
-
-
-def find_largest_blob(blobs):
+def max_blob(blobs):
     return max(blobs, key=lambda b: b.pixels(), default=None)
 
 
@@ -113,7 +91,7 @@ def calculate_center(x, y, w, h):
     return (center_x, center_y)
 
 
-thresholds_dict = {
+thresholds = {
     "wall": (20, 100, -128, 127, -80, 127),
     "player": (44, 100, -128, -23, -128, 78),
     "player_front": (),
@@ -124,7 +102,7 @@ thresholds_dict = {
     "floor": (25, 100, 30, 80, -128, -70),
 }
 
-display_dict = {
+display = {
     "wall": False,
     "player": False,
     "box": True,
@@ -149,20 +127,20 @@ while True:
     clock.tick()
     img = sensor.snapshot()
     try:
-        ld_img = image.Image("/sd/img3.bmp")
-        img.draw_image(ld_img, 0, 0, x_scale=1, y_scale=1)
+        overlay_img = image.Image("/sd/img3.bmp")
+        img.draw_image(overlay_img, 0, 0, x_scale=1, y_scale=1)
     except Exception:
         pass
     color_img = img.copy()
-    if display_dict["bin"]:
+    if display["bin"]:
         binary_img = (
             img.copy().binary(
                 [
-                    # thresholds_dict["floor"],
-                    # thresholds_dict["goal"],
-                    # thresholds_dict["bomb"],
-                    thresholds_dict["player"],
-                    # thresholds_dict["box"],
+                    # thresholds["floor"],
+                    # thresholds["goal"],
+                    # thresholds["bomb"],
+                    thresholds["player"],
+                    # thresholds["box"],
                 ]
             )
             # .median(3)
@@ -172,35 +150,36 @@ while True:
         )
         img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
 
-    current_lightness = color_img.get_statistics().l_median()
-    brightness_output = brightness_pid.update(current_lightness)
+    lightness_current = color_img.get_statistics().l_median()
+    brightness_output = brightness_pid.update(lightness_current)
     sensor.set_brightness(brightness_output)
-    img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
+    img.draw_string(0, 0, str(lightness_current), color=(255, 255, 255))
 
-    if display_dict["wall"]:
+    if display["wall"]:
         wall_blobs = color_img.find_blobs(
-            [thresholds_dict["wall"]],
+            [thresholds["wall"]],
             pixels_threshold=100,
             merge=True,
             margin=1,
         )
-        largest_wall_blob = find_largest_blob(wall_blobs)
-        if largest_wall_blob:
-            blob = largest_wall_blob
-            if display_dict["wall"]:
+        wall_blobs_max = max_blob(wall_blobs)
+        if wall_blobs_max:
+            blob = wall_blobs_max
+            if display["wall"]:
                 img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
+
     floor_blobs = color_img.find_blobs(
-        [thresholds_dict["floor"]],
+        [thresholds["floor"]],
         pixels_threshold=100,
         merge=True,
         margin=1,
     )
-
-    largest_floor_blob = find_largest_blob(floor_blobs)
-    if largest_floor_blob:
-        blob = largest_floor_blob
-        # print(blob.pixels())
-        if display_dict["floor"]:
+    floor_blobs_max = max_blob(floor_blobs)
+    reference_rect = None
+    if floor_blobs_max:
+        blob = floor_blobs_max
+        reference_rect = blob.rect()
+        if display["floor"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
         x, y, w, h = blob.rect()
         step_x = w / 14.0
@@ -212,11 +191,11 @@ while True:
             color_img.copy()
             .binary(
                 [
-                    thresholds_dict["floor"],
-                    thresholds_dict["goal"],
-                    thresholds_dict["bomb"],
-                    thresholds_dict["player"],
-                    thresholds_dict["box"],
+                    thresholds["floor"],
+                    thresholds["goal"],
+                    thresholds["bomb"],
+                    thresholds["player"],
+                    thresholds["box"],
                 ]
             )
             .mean(1)
@@ -226,7 +205,7 @@ while True:
             color_img.copy()
             .binary(
                 [
-                    thresholds_dict["goal"],
+                    thresholds["goal"],
                 ]
             )
             .erode(1)
@@ -268,13 +247,13 @@ while True:
                     goal_coords.append(goal_coord)
 
                     map_grid[row][col] = 2
-                    if display_dict["grid"]:
+                    if display["grid"]:
                         img.draw_rectangle(
                             roi, color=(255, 255, 0), thickness=1, fill=True
                         )
                 elif floor_white_ratio > threshold:
                     map_grid[row][col] = 1
-                    if display_dict["grid"]:
+                    if display["grid"]:
                         img.draw_rectangle(
                             roi, color=(0, 255, 0), thickness=1, fill=True
                         )
@@ -282,43 +261,50 @@ while True:
                     map_grid[row][col] = 0
 
     player_blobs = color_img.find_blobs(
-        [thresholds_dict["player"]],
+        [thresholds["player"]],
         pixels_threshold=10,
         merge=True,
         margin=1,
     )
-    largest_player_blob = find_largest_blob(player_blobs)
-    if largest_player_blob:
-        blob = largest_player_blob
-        if display_dict["player"]:
+    player_blob_max = max_blob(player_blobs)
+    if player_blob_max:
+        blob = player_blob_max
+        if display["player"]:
             img.draw_rectangle(blob.rect(), color=(255, 0, 0), thickness=1)
-            # print(blob.pixels())
             angle_deg = blob.rotation_deg()
             angle_rad = blob.rotation_rad()
             # print(f"Player angle: {angle_deg:.2f}° ({angle_rad:.3f} rad)")
             x1, y1, x2, y2 = blob.major_axis_line()
             img.draw_line((x1, y1, x2, y2), color=(255, 255, 0), thickness=2)
+
     box_blobs = color_img.find_blobs(
-        [thresholds_dict["box"]],
+        [thresholds["box"]],
         pixels_threshold=50,
         merge=False,
         margin=5,
     )
-    largest_box_blob = find_largest_blob(box_blobs)
-    if largest_box_blob:
-        blob = largest_box_blob
-        if display_dict["box"]:
+    box_blob_max = max_blob(box_blobs)
+    if box_blob_max:
+        blob = box_blob_max
+        if display["box"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
-    if display_dict["box"]:
-        for i, box_blob in enumerate(box_blobs):
-            img.draw_rectangle(box_blob.rect(), color=(0, 255, 0), thickness=1)
-            # img.draw_string(box_blob.x(), box_blob.y() - 10, f"Box{i+1}", color=(0, 255, 0))
 
-    # map_grid, goal_coords_list, floor_cells, base_x, base_y, step = (
-    #     detect_grid_and_floor(color_img, wall_blob, thresholds_dict, display_dict)
-    # )
-    # 数据包构建和发送
-    # packet = build_packet(largest_player_blob, largest_box_blob, goal_coords_list, stable_floor_corners)
+    packet = {
+        "player_coords": None,
+        "box_coords": None,
+        "goal_coords": None,
+        "floor_corners": None,
+    }
+    
+    # 只有当变量存在时才赋值
+    if 'goal_coords' in locals() and goal_coords:
+        packet["goal_coords"] = goal_coords
+    if player_blob_max:
+        center_x, center_y = player_blob_max.cx(), player_blob_max.cy()
+        packet["player_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
+    if box_blob_max:
+        center_x, center_y = box_blob_max.cx(), box_blob_max.cy()
+        packet["box_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
