@@ -332,7 +332,7 @@ while True:
         blob = largest_box_blob
         if display_dict["box"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
-    
+
     # 检测所有箱子并打印数量
     if display_dict["box"]:
         for i, box_blob in enumerate(box_blobs):
