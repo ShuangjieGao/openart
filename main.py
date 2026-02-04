@@ -300,7 +300,7 @@ while True:
                         )
                 else:
                     map_grid[row][col] = 0
-    # 玩家检测
+
     player_blobs = color_img.find_blobs(
         [thresholds_dict["player"]],
         pixels_threshold=10,
