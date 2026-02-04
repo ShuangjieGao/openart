@@ -258,7 +258,6 @@ while True:
                 grid_y = int(base_y + row * step_y + step_y * 0.3)
                 grid_w = int(step_x - step_x * 0.6)
                 grid_h = int(step_y - step_y * 0.6)
-
                 # 边界检查
                 if grid_x < 0:
                     grid_x = 0
@@ -270,8 +269,8 @@ while True:
                     grid_h = img.height() - grid_y
                 if grid_w <= 0 or grid_h <= 0:
                     continue
-
                 roi = (grid_x, grid_y, grid_w, grid_h)
+
                 floor_stats = floor_binary_img.get_statistics(roi=roi)
                 floor_white_ratio = floor_stats.l_mean() / 100.0
                 goal_stats = goal_binary_img.get_statistics(roi=roi)
@@ -348,6 +347,7 @@ while True:
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
 
+
 def check_threshold(L, A, B, threshold):
     """
     检查给定的L、A、B值是否在指定的阈值范围内。
@@ -367,6 +367,8 @@ def check_threshold(L, A, B, threshold):
         and (threshold[2] <= A <= threshold[3])
         and (threshold[4] <= B <= threshold[5])
     )
+
+
 def check_threshold(L, A, B, threshold):
     """
     检查给定的L、A、B值是否在指定的阈值范围内。
@@ -386,6 +388,8 @@ def check_threshold(L, A, B, threshold):
         and (threshold[2] <= A <= threshold[3])
         and (threshold[4] <= B <= threshold[5])
     )
+
+
 def check_threshold(L, A, B, threshold):
     """
     检查给定的L、A、B值是否在指定的阈值范围内。
