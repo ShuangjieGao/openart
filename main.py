@@ -35,15 +35,15 @@ class PIDController:
         self.output = 0
 
     def update(self, current_value):
-        error_current = self.setpoint - current_value
-        p_term = error_current - self.error_last
-        i_term = error_current
-        d_term = error_current - 2 * self.error_last + self.error_prev
+        current_error = self.setpoint - current_value
+        p_term = current_error - self.error_last
+        i_term = current_error
+        d_term = current_error - 2 * self.error_last + self.error_prev
         pid_output = self.Kp * p_term + self.Ki * i_term + self.Kd * d_term
         self.output = self.output + pid_output
         self.output = min(self.output_max, max(self.output_min, self.output))
         self.error_prev = self.error_last
-        self.error_last = error_current
+        self.error_last = current_error
         return int(self.output)
 
     def reset(self):
@@ -73,11 +73,11 @@ def pixel_to_ratio(
     return (x_norm * target_width, y_norm * target_height)
 
 
-def check_threshold(L, A, B, threshold):
+def check_threshold(lightness, a_channel, b_channel, threshold):
     return (
-        (threshold[0] <= L <= threshold[1])
-        and (threshold[2] <= A <= threshold[3])
-        and (threshold[4] <= B <= threshold[5])
+        (threshold[0] <= lightness <= threshold[1])
+        and (threshold[2] <= a_channel <= threshold[3])
+        and (threshold[4] <= b_channel <= threshold[5])
     )
 
 
@@ -86,9 +86,9 @@ def max_blob(blobs):
 
 
 def calculate_center(x, y, w, h):
-    center_x = x + w // 2
-    center_y = y + h // 2
-    return (center_x, center_y)
+    x_center = x + w // 2
+    y_center = y + h // 2
+    return (x_center, y_center)
 
 
 thresholds = {
@@ -150,10 +150,10 @@ while True:
         )
         img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
 
-    lightness_current = color_img.get_statistics().l_median()
-    brightness_output = brightness_pid.update(lightness_current)
+    current_lightness = color_img.get_statistics().l_median()
+    brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
-    img.draw_string(0, 0, str(lightness_current), color=(255, 255, 255))
+    img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
 
     if display["wall"]:
         wall_blobs = color_img.find_blobs(
@@ -162,22 +162,25 @@ while True:
             merge=True,
             margin=1,
         )
-        wall_blobs_max = max_blob(wall_blobs)
-        if wall_blobs_max:
-            blob = wall_blobs_max
+        wall_blob_max = max_blob(wall_blobs)
+        if wall_blob_max:
+            blob = wall_blob_max
             if display["wall"]:
                 img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
 
+    # 初始化变量，避免作用域问题
+    goal_coords = []
+    
     floor_blobs = color_img.find_blobs(
         [thresholds["floor"]],
         pixels_threshold=100,
         merge=True,
         margin=1,
     )
-    floor_blobs_max = max_blob(floor_blobs)
+    floor_blob_max = max_blob(floor_blobs)
     reference_rect = None
-    if floor_blobs_max:
-        blob = floor_blobs_max
+    if floor_blob_max:
+        blob = floor_blob_max
         reference_rect = blob.rect()
         if display["floor"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
@@ -212,7 +215,7 @@ while True:
         )
 
         map_grid = [[0] * 14 for _ in range(10)]
-        goal_coords = []
+        goal_coords = []  # 重新初始化，确保每次循环都是空的
         for col in range(14):
             for row in range(10):
                 grid_x = int(base_x + col * step_x + step_x * 0.3)
@@ -231,27 +234,27 @@ while True:
                     continue
                 roi = (grid_x, grid_y, grid_w, grid_h)
 
-                floor_stats = floor_binary_img.get_statistics(roi=roi)
-                floor_white_ratio = floor_stats.l_mean() / 100.0
-                goal_stats = goal_binary_img.get_statistics(roi=roi)
-                goal_white_ratio = goal_stats.l_mean() / 100.0
-                threshold = 0.4
+                stats_floor = floor_binary_img.get_statistics(roi=roi)
+                ratio_floor_white = stats_floor.l_mean() / 100.0
+                stats_goal = goal_binary_img.get_statistics(roi=roi)
+                ratio_goal_white = stats_goal.l_mean() / 100.0
+                detection_threshold = 0.4
 
-                if goal_white_ratio > threshold:
-                    center_x, center_y = calculate_center(
+                if ratio_goal_white > detection_threshold:
+                    x_center, y_center = calculate_center(
                         grid_x, grid_y, grid_w, grid_h
                     )
-                    goal_coord = pixel_to_ratio(
-                        center_x, center_y, reference_rect=blob.rect()
+                    coord_goal = pixel_to_ratio(
+                        x_center, y_center, reference_rect=blob.rect()
                     )
-                    goal_coords.append(goal_coord)
+                    goal_coords.append(coord_goal)
 
                     map_grid[row][col] = 2
                     if display["grid"]:
                         img.draw_rectangle(
                             roi, color=(255, 255, 0), thickness=1, fill=True
                         )
-                elif floor_white_ratio > threshold:
+                elif ratio_floor_white > detection_threshold:
                     map_grid[row][col] = 1
                     if display["grid"]:
                         img.draw_rectangle(
@@ -289,6 +292,7 @@ while True:
         if display["box"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
 
+    # 数据包构建和发送
     packet = {
         "player_coords": None,
         "box_coords": None,
@@ -296,15 +300,15 @@ while True:
         "floor_corners": None,
     }
     
-    # 只有当变量存在时才赋值
-    if 'goal_coords' in locals() and goal_coords:
+    # 安全地赋值检测到的对象坐标
+    if goal_coords:  # 简化检查，goal_coords 已在循环外初始化
         packet["goal_coords"] = goal_coords
     if player_blob_max:
-        center_x, center_y = player_blob_max.cx(), player_blob_max.cy()
-        packet["player_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
+        x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
+        packet["player_coords"] = pixel_to_ratio(x_center, y_center, reference_rect)
     if box_blob_max:
-        center_x, center_y = box_blob_max.cx(), box_blob_max.cy()
-        packet["box_coords"] = pixel_to_ratio(center_x, center_y, reference_rect)
+        x_center, y_center = box_blob_max.cx(), box_blob_max.cy()
+        packet["box_coords"] = pixel_to_ratio(x_center, y_center, reference_rect)
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
