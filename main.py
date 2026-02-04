@@ -155,6 +155,18 @@ while True:
     sensor.set_brightness(brightness_output)
     img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
 
+    packet = {
+        "player_coords": None,
+        "box_coords": None,
+        "goal_coords": None,
+        "bomb_coords": None,
+        "floor_corners": None,
+        "map_grid": None,
+        "valid": False,
+    }
+    goal_coords = []
+    map_grid = [[0] * 14 for _ in range(10)]
+
     if display["wall"]:
         wall_blobs = color_img.find_blobs(
             [thresholds["wall"]],
@@ -167,9 +179,6 @@ while True:
             blob = wall_blob_max
             if display["wall"]:
                 img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
-
-    # 初始化变量，避免作用域问题
-    goal_coords = []
     
     floor_blobs = color_img.find_blobs(
         [thresholds["floor"]],
@@ -178,10 +187,8 @@ while True:
         margin=1,
     )
     floor_blob_max = max_blob(floor_blobs)
-    reference_rect = None
     if floor_blob_max:
         blob = floor_blob_max
-        reference_rect = blob.rect()
         if display["floor"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
         x, y, w, h = blob.rect()
@@ -213,9 +220,6 @@ while True:
             )
             .erode(1)
         )
-
-        map_grid = [[0] * 14 for _ in range(10)]
-        goal_coords = []  # 重新初始化，确保每次循环都是空的
         for col in range(14):
             for row in range(10):
                 grid_x = int(base_x + col * step_x + step_x * 0.3)
@@ -292,23 +296,18 @@ while True:
         if display["box"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
 
-    # 数据包构建和发送
-    packet = {
-        "player_coords": None,
-        "box_coords": None,
-        "goal_coords": None,
-        "floor_corners": None,
-    }
-    
-    # 安全地赋值检测到的对象坐标
-    if goal_coords:  # 简化检查，goal_coords 已在循环外初始化
+
+    if goal_coords:
         packet["goal_coords"] = goal_coords
-    if player_blob_max:
-        x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
-        packet["player_coords"] = pixel_to_ratio(x_center, y_center, reference_rect)
-    if box_blob_max:
+    if player_blob_max and floor_blob_max:
+        if floor_blob_max:
+            x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
+            packet["player_coords"] = pixel_to_ratio(
+                x_center, y_center, floor_blob_max.rect()
+            )
+    if box_blob_max and floor_blob_max:
         x_center, y_center = box_blob_max.cx(), box_blob_max.cy()
-        packet["box_coords"] = pixel_to_ratio(x_center, y_center, reference_rect)
+        packet["box_coords"] = pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
