@@ -2,6 +2,7 @@ import time
 import sensor
 import image
 import json
+from typing import TypedDict, List, Tuple
 from machine import UART
 from pyb import LED
 
@@ -123,6 +124,16 @@ brightness_pid = PIDController(
 )
 
 
+class Packet(TypedDict):
+    player_coords: List[Tuple[float, float]]
+    box_coords: List[Tuple[float, float]]
+    goal_coords: List[Tuple[float, float]]
+    bomb_coords: List[Tuple[float, float]]
+    floor_corners: List[Tuple[float, float]]
+    map_grid: List[List[int]]
+    valid: bool
+
+
 while True:
     clock.tick()
     img = sensor.snapshot()
@@ -155,17 +166,15 @@ while True:
     sensor.set_brightness(brightness_output)
     img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
 
-    packet = {
-        "player_coords": None,
-        "box_coords": None,
-        "goal_coords": None,
-        "bomb_coords": None,
-        "floor_corners": None,
-        "map_grid": None,
+    packet: Packet = {
+        "player_coords": [],
+        "box_coords": [],
+        "goal_coords": [],
+        "bomb_coords": [],
+        "floor_corners": [],
+        "map_grid": [[0] * 14 for _ in range(10)],
         "valid": False,
     }
-    goal_coords = []
-    map_grid = [[0] * 14 for _ in range(10)]
 
     if display["wall"]:
         wall_blobs = color_img.find_blobs(
@@ -179,7 +188,7 @@ while True:
             blob = wall_blob_max
             if display["wall"]:
                 img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
-    
+
     floor_blobs = color_img.find_blobs(
         [thresholds["floor"]],
         pixels_threshold=100,
@@ -251,21 +260,21 @@ while True:
                     coord_goal = pixel_to_ratio(
                         x_center, y_center, reference_rect=blob.rect()
                     )
-                    goal_coords.append(coord_goal)
+                    packet["goal_coords"].append(coord_goal)
 
-                    map_grid[row][col] = 2
+                    packet["map_grid"][row][col] = 2
                     if display["grid"]:
                         img.draw_rectangle(
                             roi, color=(255, 255, 0), thickness=1, fill=True
                         )
                 elif ratio_floor_white > detection_threshold:
-                    map_grid[row][col] = 1
+                    packet["map_grid"][row][col] = 1
                     if display["grid"]:
                         img.draw_rectangle(
                             roi, color=(0, 255, 0), thickness=1, fill=True
                         )
                 else:
-                    map_grid[row][col] = 0
+                    packet["map_grid"][row][col] = 0
 
     player_blobs = color_img.find_blobs(
         [thresholds["player"]],
@@ -296,18 +305,17 @@ while True:
         if display["box"]:
             img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
 
-
-    if goal_coords:
-        packet["goal_coords"] = goal_coords
     if player_blob_max and floor_blob_max:
         if floor_blob_max:
             x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
-            packet["player_coords"] = pixel_to_ratio(
-                x_center, y_center, floor_blob_max.rect()
-            )
+            packet["player_coords"] = [
+                pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
+            ]
     if box_blob_max and floor_blob_max:
         x_center, y_center = box_blob_max.cx(), box_blob_max.cy()
-        packet["box_coords"] = pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
+        packet["box_coords"] = [
+            pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
+        ]
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
