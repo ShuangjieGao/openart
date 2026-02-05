@@ -85,23 +85,25 @@ def max_blob(blobs):
     return max(blobs, key=lambda b: b.pixels(), default=None)
 
 
+# TODO: calculate-center
 def calculate_center(x, y, w, h):
     x_center = x + w // 2
     y_center = y + h // 2
     return (x_center, y_center)
 
 
+# TODO: color-thresholds
 thresholds = {
     "wall": (20, 100, -128, 127, -80, 127),
     "player": (44, 100, -128, -23, -128, 78),
     "player_front": (),
     "player_back": (),
-    "box": (65, 100, -50, 50, 50, 127),
+    "box": (50, 100, -50, 50, 50, 127),
     "goal": (40, 100, 85, 127, -75, -50),
     "bomb": (40, 100, 50, 127, -35, 50),
     "floor": (25, 100, 30, 80, -128, -70),
 }
-
+# TODO: display-config
 display = {
     "wall": False,
     "player": False,
@@ -112,7 +114,7 @@ display = {
     "grid": False,
     "bin": False,
 }
-
+# TODO: brightness-pid-inits
 brightness_pid = PIDController(
     Kp=1,
     Ki=3,
@@ -283,11 +285,14 @@ while True:
         merge=False,
         margin=5,
     )
+    for b in box_blobs:
+        img.draw_rectangle(*b.rect(), color=(0, 255, 0), thickness=1)
+        img.draw_string(b.x(), b.y() - 10, str(b.pixels()), color=(0, 255, 0))
     box_blob_max = max_blob(box_blobs)
     if box_blob_max:
         blob = box_blob_max
-        if display["box"]:
-            img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
+        # if display["box"]:
+        #     img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
 
     # FIXME:removed undefined `goal_coords` variable; use `packet["goal_coords"]` instead
     if player_blob_max and floor_blob_max:
