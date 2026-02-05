@@ -189,12 +189,6 @@ while True:
         blob = floor_blob_max
         if display["floor"]:
             img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
-        x, y, w, h = blob.rect()
-        step_x = w / 14.0
-        step_y = h / 10.0
-        base_x = x
-        base_y = y
-
         floor_binary_img = (
             color_img.copy()
             .binary(
@@ -218,22 +212,18 @@ while True:
             )
             .erode(1)
         )
+
+        x, y, w, h = blob.rect()
+        origin_x = x
+        origin_y = y
+        delta_x = w / 14.0
+        delta_y = h / 10.0
         for col in range(14):
             for row in range(10):
-                grid_x = int(base_x + col * step_x + step_x * 0.3)
-                grid_y = int(base_y + row * step_y + step_y * 0.3)
-                grid_w = int(step_x - step_x * 0.6)
-                grid_h = int(step_y - step_y * 0.6)
-                if grid_x < 0:
-                    grid_x = 0
-                if grid_y < 0:
-                    grid_y = 0
-                if grid_x + grid_w > img.width():
-                    grid_w = img.width() - grid_x
-                if grid_y + grid_h > img.height():
-                    grid_h = img.height() - grid_y
-                if grid_w <= 0 or grid_h <= 0:
-                    continue
+                grid_x = int(origin_x + col * delta_x + delta_x * 0.3)
+                grid_y = int(origin_y + row * delta_y + delta_y * 0.3)
+                grid_w = int(delta_x - 2 * delta_x * 0.3)
+                grid_h = int(delta_y - 2 * delta_y * 0.3)
                 roi = (grid_x, grid_y, grid_w, grid_h)
 
                 stats_floor = floor_binary_img.get_statistics(roi=roi)
@@ -243,9 +233,7 @@ while True:
                 detection_threshold = 0.4
 
                 if ratio_goal_white > detection_threshold:
-                    x_center, y_center = calculate_center(
-                        grid_x, grid_y, grid_w, grid_h
-                    )
+                    x_center, y_center = calculate_center(*roi)
                     coord_goal = pixel_to_ratio(
                         x_center, y_center, reference_rect=blob.rect()
                     )
@@ -296,17 +284,16 @@ while True:
 
     # removed undefined `goal_coords` variable; use `packet["goal_coords"]` instead
     if player_blob_max and floor_blob_max:
-        if floor_blob_max:
-            x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
-            packet["player_coords"] = [
-                pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
-            ]
+        x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
+        packet["player_coords"] = [
+            pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
+        ]
     if box_blob_max and floor_blob_max:
         x_center, y_center = box_blob_max.cx(), box_blob_max.cy()
         packet["box_coords"] = [
             pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
         ]
-    # json_str = json.dumps(packet, separators=(",", ":"))
+    json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
     img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
