@@ -153,7 +153,12 @@ while True:
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
-    img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
+    img.draw_string(
+        0,
+        0,
+        str(current_lightness) + "," + str(brightness_output),
+        color=(255, 255, 255),
+    )
 
     packet = {
         "player_coords": [],
@@ -218,6 +223,10 @@ while True:
         origin_y = y
         delta_x = w / 14.0
         delta_y = h / 10.0
+        if delta_x < 10 or delta_y < 10:
+            packet["valid"] = False
+            continue
+        img.draw_string(0, 20, f"{int(delta_x)},{int(delta_y)}", color=(255, 255, 255))
         for col in range(14):
             for row in range(10):
                 grid_x = int(origin_x + col * delta_x + delta_x * 0.3)
@@ -233,26 +242,16 @@ while True:
                 detection_threshold = 0.4
 
                 if ratio_goal_white > detection_threshold:
-                    x_center, y_center = calculate_center(*roi)
-                    coord_goal = pixel_to_ratio(
-                        x_center, y_center, reference_rect=blob.rect()
-                    )
-                    packet["goal_coords"].append(coord_goal)
-
+                    packet["goal_coords"].append((row, col))
                     packet["map_grid"][row][col] = 2
                     if display["grid"]:
-                        img.draw_rectangle(
-                            *roi, color=(255, 255, 0), thickness=1, fill=True
-                        )
+                        img.draw_rectangle(*roi, color=(255, 255, 0), fill=True)
                 elif ratio_floor_white > detection_threshold:
                     packet["map_grid"][row][col] = 1
                     if display["grid"]:
-                        img.draw_rectangle(
-                            *roi, color=(0, 255, 0), thickness=1, fill=True
-                        )
+                        img.draw_rectangle(*roi, color=(0, 255, 0), fill=True)
                 else:
                     packet["map_grid"][row][col] = 0
-
     player_blobs = color_img.find_blobs(
         [thresholds["player"]],
         pixels_threshold=10,
