@@ -187,11 +187,7 @@ while True:
         if wall_blob_max:
             blob = wall_blob_max
             if display["wall"]:
-<<<<<<< HEAD
-                img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
-=======
                 img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
->>>>>>> c0260cfb56d34f28ee54f53f4a9560a9fbabec0a
 
     floor_blobs = color_img.find_blobs(
         [thresholds["floor"]],
@@ -307,15 +303,10 @@ while True:
     if box_blob_max:
         blob = box_blob_max
         if display["box"]:
-<<<<<<< HEAD
-            img.draw_rectangle(blob.rect(), color=(0, 255, 0), thickness=1)
-
-=======
             img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
 
     if goal_coords:
         packet["goal_coords"] = goal_coords
->>>>>>> c0260cfb56d34f28ee54f53f4a9560a9fbabec0a
     if player_blob_max and floor_blob_max:
         if floor_blob_max:
             x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
