@@ -3,7 +3,7 @@
   "typeshedPath": "./pyright/typeshed_zh",
   "stubPath": "./pyright/typeshed_zh/stubs",
   "useLibraryCodeForTypes": false,
-  // "reportMissingModuleSource": "none",
+  "reportMissingModuleSource": "none",
   // "reportMissingImports": "none",
   // "reportMissingTypeStubs": "none",
   // "reportImportCycles": "none",
