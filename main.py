@@ -277,8 +277,6 @@ while True:
             x1, y1, x2, y2 = blob.major_axis_line()
             img.draw_line(x1, y1, x2, y2, color=(255, 255, 0), thickness=2)
     # TODO: box-processing
-
-    
     box_blobs = color_img.find_blobs(
         [thresholds["box"]],
         pixels_threshold=50,
@@ -291,7 +289,7 @@ while True:
         if display["box"]:
             img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
 
-    # removed undefined `goal_coords` variable; use `packet["goal_coords"]` instead
+    # FIXME:removed undefined `goal_coords` variable; use `packet["goal_coords"]` instead
     if player_blob_max and floor_blob_max:
         x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
         packet["player_coords"] = [
