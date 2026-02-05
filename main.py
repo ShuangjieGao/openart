@@ -99,14 +99,14 @@ thresholds = {
     "player_front": (),
     "player_back": (),
     "box": (50, 100, -50, 50, 50, 127),
-    "goal": (40, 100, 85, 127, -75, -50),
+    "goal": (40, 100, 85, 127, -128, -50),#FIXME:b_min-75
     "bomb": (40, 100, 50, 127, -35, 50),
     "floor": (25, 100, 30, 80, -128, -70),
 }
 # TODO: display-config
 display = {
     "wall": False,
-    "player": False,
+    "player": True,
     "box": True,
     "goal": False,
     "bomb": False,
@@ -119,7 +119,7 @@ brightness_pid = PIDController(
     Kp=1,
     Ki=3,
     Kd=6,
-    setpoint=35,
+    setpoint=38,
     output_min=10,
     output_max=20000,
 )
@@ -141,14 +141,14 @@ while True:
             img.copy().binary(
                 [
                     # thresholds["floor"],
-                    # thresholds["goal"],
+                    thresholds["goal"],
                     # thresholds["bomb"],
-                    thresholds["player"],
+                    # thresholds["player"],
                     # thresholds["box"],
                 ]
             )
             # .median(3)
-            .mean(1)
+            # .mean(1)
             # .dilate(1)
             # .erode(1)
         )
@@ -176,7 +176,7 @@ while True:
         "valid": False,
     }
 
-    # TODO: wall-processing
+    # FIXME: wall-processing
     # if display["wall"]:
     #     wall_blobs = color_img.find_blobs(
     #         [thresholds["wall"]],
@@ -189,7 +189,7 @@ while True:
     #         blob = wall_blob_max
     #         if display["wall"]:
     #             img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
-
+    # TODO: floor-processing
     floor_blobs = color_img.find_blobs(
         [thresholds["floor"]],
         pixels_threshold=100,
@@ -197,7 +197,6 @@ while True:
         margin=1,
     )
     floor_blob_max = max_blob(floor_blobs)
-    # TODO: floor-processing
     if floor_blob_max:
         blob = floor_blob_max
         if display["floor"]:
@@ -225,7 +224,6 @@ while True:
             )
             .erode(1)
         )
-
         x, y, w, h = blob.rect()
         origin_x = x
         origin_y = y
@@ -278,6 +276,12 @@ while True:
             # print(f"Player angle: {angle_deg:.2f}° ({angle_rad:.3f} rad)")
             x1, y1, x2, y2 = blob.major_axis_line()
             img.draw_line(x1, y1, x2, y2, color=(255, 255, 0), thickness=2)
+
+    if player_blob_max and floor_blob_max:
+        x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
+        packet["player_coords"] = [
+            pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
+        ]
     # TODO: box-processing
     box_blobs = color_img.find_blobs(
         [thresholds["box"]],
@@ -293,13 +297,6 @@ while True:
         blob = box_blob_max
         # if display["box"]:
         #     img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
-
-    # FIXME:removed undefined `goal_coords` variable; use `packet["goal_coords"]` instead
-    if player_blob_max and floor_blob_max:
-        x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
-        packet["player_coords"] = [
-            pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
-        ]
     if box_blob_max and floor_blob_max:
         x_center, y_center = box_blob_max.cx(), box_blob_max.cy()
         packet["box_coords"] = [
@@ -307,7 +304,7 @@ while True:
         ]
     # TODO: publish-results
     json_str = json.dumps(packet, separators=(",", ":"))
-    # # uart.write(json_str + "\r\n")
-    # print("Sent:", json_str, "\r\n")
+    # uart.write(json_str + "\r\n")
+    print("Sent:", json_str, "\r\n")
     # TODO: fps-draw
     img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
