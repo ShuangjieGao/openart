@@ -126,12 +126,14 @@ brightness_pid = PIDController(
 while True:
     clock.tick()
     img = sensor.snapshot()
+    # TODO: overlay-image
     try:
         overlay_img = image.Image("/sd/img3.bmp")
         img.draw_image(overlay_img, 0, 0, x_scale=1, y_scale=1)
     except Exception:
         pass
     color_img = img.copy()
+    # TODO: bin-display
     if display["bin"]:
         binary_img = (
             img.copy().binary(
@@ -150,6 +152,7 @@ while True:
         )
         img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
 
+    # TODO: brightness-control
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
     sensor.set_brightness(brightness_output)
@@ -160,6 +163,7 @@ while True:
         color=(255, 255, 255),
     )
 
+    # TODO: packet-init
     packet = {
         "player_coords": [],
         "box_coords": [],
@@ -170,6 +174,7 @@ while True:
         "valid": False,
     }
 
+    # TODO: wall-processing
     # if display["wall"]:
     #     wall_blobs = color_img.find_blobs(
     #         [thresholds["wall"]],
@@ -190,6 +195,7 @@ while True:
         margin=1,
     )
     floor_blob_max = max_blob(floor_blobs)
+    # TODO: floor-processing
     if floor_blob_max:
         blob = floor_blob_max
         if display["floor"]:
@@ -252,6 +258,8 @@ while True:
                         img.draw_rectangle(*roi, color=(0, 255, 0), fill=True)
                 else:
                     packet["map_grid"][row][col] = 0
+
+    # TODO: player-processing
     player_blobs = color_img.find_blobs(
         [thresholds["player"]],
         pixels_threshold=10,
@@ -268,7 +276,9 @@ while True:
             # print(f"Player angle: {angle_deg:.2f}° ({angle_rad:.3f} rad)")
             x1, y1, x2, y2 = blob.major_axis_line()
             img.draw_line(x1, y1, x2, y2, color=(255, 255, 0), thickness=2)
+    # TODO: box-processing
 
+    
     box_blobs = color_img.find_blobs(
         [thresholds["box"]],
         pixels_threshold=50,
@@ -292,7 +302,9 @@ while True:
         packet["box_coords"] = [
             pixel_to_ratio(x_center, y_center, floor_blob_max.rect())
         ]
+    # TODO: publish-results
     json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
+    # TODO: fps-draw
     img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
