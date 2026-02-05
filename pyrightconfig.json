@@ -1,24 +1,47 @@
 {
-  "typeCheckingMode": "standard",
   "typeshedPath": "./pyright/typeshed_zh",
   "stubPath": "./pyright/typeshed_zh/stubs",
   "useLibraryCodeForTypes": false,
+  
+  // MicroPython/OpenMV 特定配置
+  "pythonVersion": "3.9",
+  "pythonPlatform": "Linux",
+  
+  // 模块和导入相关
   "reportMissingModuleSource": "none",
-  // "reportMissingImports": "none",
-  // "reportMissingTypeStubs": "none",
-  // "reportImportCycles": "none",
-  // "reportUnusedImport": "none",
-  // "reportUnusedClass": "none",
-  // "reportUnusedFunction": "none",
-  // "reportUnusedVariable": "none",
-  // "reportDuplicateImport": "none",
-  // "reportWildcardImportFromLibrary": "none",
-  // "reportPrivateImportUsage": "none",
-  // "reportUnknownMemberType": "none",
-  // "reportUnknownParameterType": "none",
-  // "reportUnknownArgumentType": "none",
-  // "reportUnknownVariableType": "none",
-  // "reportArgumentType": "none",
-  // "reportCallIssue": "none",
-  // "reportMissingParameterType": "none"
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": "none",
+  
+  // 类型检查级别（针对 MicroPython 的宽松设置）
+  "typeCheckingMode": "basic",
+  
+  // 未使用代码检查
+  "reportUnusedImport": "warning",
+  "reportUnusedClass": "none",
+  "reportUnusedFunction": "none",
+  "reportUnusedVariable": "warning",
+  
+  // 类型相关警告（MicroPython 中很多库没有完整类型）
+  "reportUnknownMemberType": "none",
+  "reportUnknownParameterType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownVariableType": "none",
+  "reportMissingParameterType": "none",
+  
+  // 其他常见问题
+  "reportGeneralTypeIssues": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportOptionalSubscript": "warning",
+  "reportPrivateImportUsage": "none",
+  "reportWildcardImportFromLibrary": "none",
+  
+  // 兼容性设置
+  "reportIncompatibleMethodOverride": "warning",
+  "reportIncompatibleVariableOverride": "warning",
+  
+  // 其他
+  "reportDuplicateImport": "warning",
+  "reportImportCycles": "none",
+  "reportCallIssue": "warning",
+  "reportArgumentType": "warning"
 }

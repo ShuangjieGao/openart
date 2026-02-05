@@ -2,7 +2,6 @@ import time
 import sensor
 import image
 import json
-from typing import TypedDict, List, Tuple
 from machine import UART
 from pyb import LED
 
@@ -124,16 +123,6 @@ brightness_pid = PIDController(
 )
 
 
-class Packet(TypedDict):
-    player_coords: List[Tuple[float, float]]
-    box_coords: List[Tuple[float, float]]
-    goal_coords: List[Tuple[float, float]]
-    bomb_coords: List[Tuple[float, float]]
-    floor_corners: List[Tuple[float, float]]
-    map_grid: List[List[int]]
-    valid: bool
-
-
 while True:
     clock.tick()
     img = sensor.snapshot()
@@ -166,7 +155,7 @@ while True:
     sensor.set_brightness(brightness_output)
     img.draw_string(0, 0, str(current_lightness), color=(255, 255, 255))
 
-    packet: Packet = {
+    packet = {
         "player_coords": [],
         "box_coords": [],
         "goal_coords": [],
@@ -176,18 +165,18 @@ while True:
         "valid": False,
     }
 
-    if display["wall"]:
-        wall_blobs = color_img.find_blobs(
-            [thresholds["wall"]],
-            pixels_threshold=100,
-            merge=True,
-            margin=1,
-        )
-        wall_blob_max = max_blob(wall_blobs)
-        if wall_blob_max:
-            blob = wall_blob_max
-            if display["wall"]:
-                img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
+    # if display["wall"]:
+    #     wall_blobs = color_img.find_blobs(
+    #         [thresholds["wall"]],
+    #         pixels_threshold=100,
+    #         merge=True,
+    #         margin=1,
+    #     )
+    #     wall_blob_max = max_blob(wall_blobs)
+    #     if wall_blob_max:
+    #         blob = wall_blob_max
+    #         if display["wall"]:
+    #             img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
 
     floor_blobs = color_img.find_blobs(
         [thresholds["floor"]],
@@ -305,8 +294,7 @@ while True:
         if display["box"]:
             img.draw_rectangle(*blob.rect(), color=(0, 255, 0), thickness=1)
 
-    if goal_coords:
-        packet["goal_coords"] = goal_coords
+    # removed undefined `goal_coords` variable; use `packet["goal_coords"]` instead
     if player_blob_max and floor_blob_max:
         if floor_blob_max:
             x_center, y_center = player_blob_max.cx(), player_blob_max.cy()
@@ -321,4 +309,4 @@ while True:
     # json_str = json.dumps(packet, separators=(",", ":"))
     # # uart.write(json_str + "\r\n")
     # print("Sent:", json_str, "\r\n")
-    img.draw_string(0, 10, f"{int(clock.fps())}", color=(102, 204, 255))
+    img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
