@@ -96,30 +96,30 @@ def calculate_center(x, y, w, h):
 thresholds = {
     "wall": (20, 100, -128, 127, -80, 127),
     "player": (44, 100, -128, -23, -128, 78),
-    "player_front": (),
-    "player_back": (),
+    "player_front": (44, 100, -75, -8, -75, -8),
+    "player_back": (34, 100, -93, -44, 49, 127),
     "box": (50, 100, -50, 50, 50, 127),
-    "goal": (40, 100, 85, 127, -128, -50),#FIXME:b_min-75
+    "goal": (40, 100, 85, 127, -128, -50),  # FIXME:b_min-75
     "bomb": (40, 100, 50, 127, -35, 50),
     "floor": (25, 100, 30, 80, -128, -70),
 }
 # TODO: display-config
 display = {
-    "wall": False,
-    "player": True,
-    "box": True,
+    "wall": True,
+    "player": False,
+    "box": False,
     "goal": False,
     "bomb": False,
     "floor": True,
     "grid": False,
-    "bin": False,
+    "bin": True,
 }
 # TODO: brightness-pid-inits
 brightness_pid = PIDController(
     Kp=1,
     Ki=3,
     Kd=6,
-    setpoint=38,
+    setpoint=36,
     output_min=10,
     output_max=20000,
 )
@@ -129,11 +129,11 @@ while True:
     clock.tick()
     img = sensor.snapshot()
     # TODO: overlay-image
-    try:
-        overlay_img = image.Image("/sd/img3.bmp")
-        img.draw_image(overlay_img, 0, 0, x_scale=1, y_scale=1)
-    except Exception:
-        pass
+    # try:
+    #     overlay_img = image.Image("/sd/img3.bmp")
+    #     img.draw_image(overlay_img, 0, 0, x_scale=1, y_scale=1)
+    # except Exception:
+    #     pass
     color_img = img.copy()
     # TODO: bin-display
     if display["bin"]:
@@ -141,9 +141,11 @@ while True:
             img.copy().binary(
                 [
                     # thresholds["floor"],
-                    thresholds["goal"],
+                    # thresholds["goal"],
                     # thresholds["bomb"],
                     # thresholds["player"],
+                    thresholds["player_back"],
+                    thresholds["player_front"],
                     # thresholds["box"],
                 ]
             )
@@ -289,9 +291,10 @@ while True:
         merge=False,
         margin=5,
     )
-    for b in box_blobs:
-        img.draw_rectangle(*b.rect(), color=(0, 255, 0), thickness=1)
-        img.draw_string(b.x(), b.y() - 10, str(b.pixels()), color=(0, 255, 0))
+    if display["box"]:
+        for b in box_blobs:
+            img.draw_rectangle(*b.rect(), color=(0, 255, 0), thickness=1)
+            img.draw_string(b.x(), b.y() - 10, str(b.pixels()), color=(0, 255, 0))
     box_blob_max = max_blob(box_blobs)
     if box_blob_max:
         blob = box_blob_max
