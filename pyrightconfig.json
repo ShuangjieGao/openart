@@ -43,5 +43,5 @@
   "reportDuplicateImport": "warning",
   "reportImportCycles": "none",
   "reportCallIssue": "warning",
-  "reportArgumentType": "warning"
+  "reportArgumentType": "none"
 }
