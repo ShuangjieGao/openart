@@ -7,10 +7,18 @@ from pyb import LED
 
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
-sensor.set_framesize(sensor.QQVGA)
-sensor.set_auto_whitebal(False, (0, 0, 0))
+sensor.set_framesize(sensor.QVGA)
+sensor.set_windowing((160, 120))
 sensor.skip_frames(time=200)
-white = LED(4)  # white.on()
+red = LED(1)  # 定义一个LED1   红灯
+green = LED(2)  # 定义一个LED2   绿灯
+blue = LED(3)  # 定义一个LED3   蓝灯
+red.on()
+# red.off()
+# green.on()
+# green.off()
+# blue.on()
+# blue.off()
 clock = time.clock()
 try:
     uart = UART(12, baudrate=115200)
@@ -104,10 +112,10 @@ display = {
     "wall": False,
     "player": True,
     "box": False,
-    "goal": False,
+    "goal": True,
     "bomb": False,
     "floor": True,
-    "grid": False,
+    "grid": True,
     "bin": False,
 }
 # TODO: brightness-pid-inits
@@ -119,11 +127,15 @@ brightness_pid = PIDController(
     output_min=10,
     output_max=20000,
 )
-
+while True:
+    clock.tick()
+    img = sensor.snapshot()
+    img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
 
 while True:
     clock.tick()
     img = sensor.snapshot()
+    # img.gamma(gamma=0.9, contrast=1.1, brightness=0.05)
     # TODO: overlay-image
     try:
         overlay_img = image.Image("/sd/img4.bmp")
