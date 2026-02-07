@@ -5,17 +5,13 @@ import json
 from machine import UART
 from pyb import LED
 
-white = LED(4)
-clock = time.clock()
-# white.on()
 sensor.reset()
 sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QQVGA)
-sensor.set_auto_whitebal(False)
-sensor.set_auto_gain(False)
-sensor.set_auto_exposure(False, 1)
-sensor.skip_frames(time=2000)
-sensor.set_brightness(1000)
+sensor.set_auto_whitebal(False, (0, 0, 0))
+sensor.skip_frames(time=200)
+white = LED(4)  # white.on()
+clock = time.clock()
 try:
     uart = UART(12, baudrate=115200)
 except Exception:
@@ -96,8 +92,8 @@ def calculate_center(x, y, w, h):
 thresholds = {
     "wall": (20, 100, -128, 127, -80, 127),
     "player": (44, 100, -128, -23, -128, 78),
-    "player_front": (44, 100, -75, -8, -75, -8),
-    "player_back": (34, 100, -93, -44, 49, 127),
+    "player_front": (40, 100, -75, -15, -75, 20),
+    "player_back": (40, 100, -90, -40, -10, 127),  # FIXME:(34, 100, -93, -44, 49, 127),
     "box": (50, 100, -50, 50, 50, 127),
     "goal": (40, 100, 85, 127, -128, -50),  # FIXME:b_min-75
     "bomb": (40, 100, 50, 127, -35, 50),
@@ -105,21 +101,21 @@ thresholds = {
 }
 # TODO: display-config
 display = {
-    "wall": True,
-    "player": False,
+    "wall": False,
+    "player": True,
     "box": False,
     "goal": False,
     "bomb": False,
     "floor": True,
     "grid": False,
-    "bin": True,
+    "bin": False,
 }
 # TODO: brightness-pid-inits
 brightness_pid = PIDController(
     Kp=1,
     Ki=3,
     Kd=6,
-    setpoint=36,
+    setpoint=34,
     output_min=10,
     output_max=20000,
 )
@@ -129,33 +125,37 @@ while True:
     clock.tick()
     img = sensor.snapshot()
     # TODO: overlay-image
-    # try:
-    #     overlay_img = image.Image("/sd/img3.bmp")
-    #     img.draw_image(overlay_img, 0, 0, x_scale=1, y_scale=1)
-    # except Exception:
-    #     pass
+    try:
+        overlay_img = image.Image("/sd/img4.bmp")
+        img.draw_image(overlay_img, 0, 0, x_scale=1, y_scale=1)
+    except Exception:
+        pass
     color_img = img.copy()
     # TODO: bin-display
     if display["bin"]:
         binary_img = (
-            img.copy().binary(
+            color_img.copy().binary(
                 [
+                    thresholds["floor"],
+                    thresholds["goal"],
+                    thresholds["bomb"],
+                    thresholds["player"],
+                    thresholds["box"],
                     # thresholds["floor"],
                     # thresholds["goal"],
                     # thresholds["bomb"],
                     # thresholds["player"],
-                    thresholds["player_back"],
-                    thresholds["player_front"],
+                    # thresholds["player_front"],
+                    # thresholds["player_back"],
                     # thresholds["box"],
                 ]
             )
             # .median(3)
-            # .mean(1)
+            .mean(1)
             # .dilate(1)
             # .erode(1)
         )
-        img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1)
-
+        img.draw_image(binary_img, 0, 0, x_scale=1, y_scale=1, alpha=128)
     # TODO: brightness-control
     current_lightness = color_img.get_statistics().l_median()
     brightness_output = brightness_pid.update(current_lightness)
@@ -231,7 +231,7 @@ while True:
         origin_y = y
         delta_x = w / 14.0
         delta_y = h / 10.0
-        if delta_x < 10 or delta_y < 10:
+        if delta_x < 5 or delta_y < 5:
             packet["valid"] = False
             continue
         img.draw_string(0, 20, f"{int(delta_x)},{int(delta_y)}", color=(255, 255, 255))
@@ -263,10 +263,13 @@ while True:
 
     # TODO: player-processing
     player_blobs = color_img.find_blobs(
-        [thresholds["player"]],
+        [
+            thresholds["player_front"],
+            thresholds["player_back"],
+        ],
         pixels_threshold=10,
         merge=True,
-        margin=1,
+        margin=5,
     )
     player_blob_max = max_blob(player_blobs)
     if player_blob_max:
