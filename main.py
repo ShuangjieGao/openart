@@ -10,10 +10,10 @@ sensor.set_pixformat(sensor.RGB565)
 sensor.set_framesize(sensor.QVGA)
 sensor.set_windowing((160, 120))
 sensor.skip_frames(time=200)
-red = LED(1)  # 定义一个LED1   红灯
-green = LED(2)  # 定义一个LED2   绿灯
-blue = LED(3)  # 定义一个LED3   蓝灯
-red.on()
+red = LED(1)
+green = LED(2)
+blue = LED(3)
+# red.on()
 # red.off()
 # green.on()
 # green.off()
