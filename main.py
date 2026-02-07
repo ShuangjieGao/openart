@@ -127,10 +127,11 @@ brightness_pid = PIDController(
     output_min=10,
     output_max=20000,
 )
-while True:
-    clock.tick()
-    img = sensor.snapshot()
-    img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
+# TODO: fps-test
+# while True:
+#     clock.tick()
+#     img = sensor.snapshot()
+#     img.draw_string(0, 10, str(int(clock.fps())), color=(102, 204, 255))
 
 while True:
     clock.tick()
